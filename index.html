@@ -66,32 +66,25 @@
       const table = document.getElementById('printTable');
       tbody.innerHTML = '';
 
-      const dateRegex = /^\w{3} \d{2}\/\d{2}\/\d{2}$/;
-      const compactDateRegex = /^\d{2}\/\w{3}\/\d{4}$/;
+      const dayDateRegex = /^\w{3} \d{2}\/\d{2}\/\d{2}/;
+      const totalsRegex = /^\d{1,2}:\d{2}\t\d{1,2}:\d{2}\t\d{1,2}:\d{2}\t\d{1,2}:\d{2}$/;
+
       let buffer = [];
 
       function flushRow() {
         if (buffer.length === 0) return;
 
-        const baseLine = buffer[0].split('\t');
-        const summaryLine = buffer.find(l => l.match(/^\d+:\d+\t/));
-        const detailLines = buffer.slice(1).filter(l => l !== summaryLine);
+        const firstLine = buffer[0].split('\t');
+        const lastLine = totalsRegex.test(buffer[buffer.length - 1]) ? buffer.pop().split('\t') : [];
+        const details = buffer.slice(1).join('\n');
 
         const row = Array(10).fill('');
-        for (let i = 0; i < baseLine.length && i < 5; i++) {
-          row[i] = baseLine[i];
-        }
-        row[5] = detailLines.join('\n');
-
-        if (summaryLine) {
-          const summary = summaryLine.split('\t');
-          for (let i = 0; i < 4 && i < summary.length; i++) {
-            row[6 + i] = summary[i];
-          }
-        }
+        for (let i = 0; i < 5; i++) row[i] = firstLine[i] || '';
+        row[5] = details;
+        for (let i = 0; i < 4; i++) row[6 + i] = lastLine[i] || '';
 
         const tr = document.createElement('tr');
-        row.forEach((cell, i) => {
+        row.forEach(cell => {
           const td = document.createElement('td');
           td.textContent = cell;
           tr.appendChild(td);
@@ -101,13 +94,11 @@
       }
 
       lines.forEach(line => {
-        if (line.match(/^\w{3} \d{2}\/\d{2}\/\d{2}$/) || line.match(/^\d{2}\/\w{3}\/\d{4}$/)) {
-          flushRow();
-        }
+        if (dayDateRegex.test(line)) flushRow();
         buffer.push(line);
       });
-
       flushRow();
+
       table.style.display = 'table';
       window.print();
       table.style.display = 'none';
