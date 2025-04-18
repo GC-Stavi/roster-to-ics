@@ -9,6 +9,16 @@
     textarea { width: 100%; height: 300px; font-family: monospace; padding: 1em; }
     button { margin: 0.5em 0.5em 0 0; padding: 0.8em 1.5em; font-size: 1em; cursor: pointer; }
     .container { max-width: 800px; margin: auto; background: #fff; padding: 2em; box-shadow: 0 0 10px #ccc; border-radius: 8px; }
+
+    @media print {
+      body { background: white; margin: 0; }
+      .container { box-shadow: none; padding: 0; max-width: 100%; }
+      textarea { display: none; }
+      button { display: none; }
+      pre#printArea { display: block; white-space: pre-wrap; font-family: monospace; font-size: 11pt; }
+    }
+
+    pre#printArea { display: none; white-space: pre-wrap; font-family: monospace; font-size: 11pt; line-height: 1.4; }
   </style>
 </head>
 <body>
@@ -17,10 +27,24 @@
     <p>Format: Date (dd/mm/yyyy) | Duty | Brief | End | Details (tab or pipe-delimited)</p>
     <textarea id="rosterInput" placeholder="01/04/2025	RDO			BNE / BNE/- 00:00L/ 23:59L\n02/04/2025	FLY	05:10	16:45	QF1927 BNE / ADL/- 06:10L/ 09:28L"></textarea><br/>
     <button onclick="generateICS()">Download ICS File</button>
-    <button onclick="window.print()">Print This Page</button>
+    <button onclick="generatePrintout()">Print This Page</button>
+    <pre id="printArea"></pre>
   </div>
 
   <script>
+    function formatDateForICS(dateStr) {
+      const [d, m, y] = dateStr.split('/');
+      return `${y}${m.padStart(2, '0')}${d.padStart(2, '0')}`;
+    }
+
+    function formatForPrint(lines) {
+      const rows = lines.map(line => {
+        const parts = line.split(/\t|\|/).map(p => p.trim());
+        return parts.slice(0, 5).join("    ");
+      });
+      return rows.join("\n");
+    }
+
     async function generateICS() {
       const input = document.getElementById('rosterInput').value.trim();
       if (!input) return alert("Please paste your roster first.");
@@ -34,8 +58,6 @@
         if (!dateStr || !duty) return;
 
         const [d, m, y] = dateStr.split('/');
-        if (!d || !m || !y) return;
-
         const yyyymmdd = `${y}${m.padStart(2, '0')}${d.padStart(2, '0')}`;
         const dateObj = new Date(`${y}-${m}-${d}`);
         if (isNaN(dateObj)) return;
@@ -45,39 +67,26 @@
         const summary = `${duty} ${cleanDetails}`;
 
         if (!brief || !end) {
-          // All-day event
-          const dtStart = yyyymmdd;
-          const dtEndObj = new Date(dateObj.getTime() + 86400000); // +1 day
-          const dtEnd = dtEndObj.toISOString().split('T')[0].replace(/-/g, '');
-
-          ics += `BEGIN:VEVENT\nDTSTART;VALUE=DATE:${dtStart}\nDTEND;VALUE=DATE:${dtEnd}\nSUMMARY:${summary}\nDESCRIPTION:Brief: ${brief || ''} | ${cleanDetails}\nUID:${uid}@roster.local\nDTSTAMP:${yyyymmdd}T000000Z\nEND:VEVENT\n`;
+          const dtEnd = new Date(dateObj.getTime() + 86400000).toISOString().split('T')[0].replace(/-/g, '');
+          ics += `BEGIN:VEVENT\nDTSTART;VALUE=DATE:${yyyymmdd}\nDTEND;VALUE=DATE:${dtEnd}\nSUMMARY:${summary}\nDESCRIPTION:Brief: ${brief || ''} | ${cleanDetails}\nUID:${uid}@roster.local\nDTSTAMP:${yyyymmdd}T000000Z\nEND:VEVENT\n`;
         } else {
-          // Timed event
-          const briefParts = brief.split(':');
-          const endParts = end.split(':');
-          const dtStart = `${yyyymmdd}T${briefParts[0].padStart(2, '0')}${briefParts[1].padStart(2, '0')}00`;
-          const dtEnd = `${yyyymmdd}T${endParts[0].padStart(2, '0')}${endParts[1].padStart(2, '0')}00`;
+          const [bh, bm] = brief.split(':');
+          const [eh, em] = end.split(':');
+          const dtStart = `${yyyymmdd}T${bh.padStart(2, '0')}${bm.padStart(2, '0')}00`;
+          const dtEnd = `${yyyymmdd}T${eh.padStart(2, '0')}${em.padStart(2, '0')}00`;
 
           ics += `BEGIN:VEVENT\nDTSTART;TZID=Australia/Brisbane:${dtStart}\nDTEND;TZID=Australia/Brisbane:${dtEnd}\nSUMMARY:${summary}\nDESCRIPTION:Brief: ${brief} | ${cleanDetails}\nUID:${uid}@roster.local\nDTSTAMP:${yyyymmdd}T000000Z\nEND:VEVENT\n`;
         }
       });
 
       ics += `END:VCALENDAR`;
-
       const blob = new Blob([ics], { type: 'text/calendar' });
 
-      // Use File System Access API if available
       if ('showSaveFilePicker' in window) {
         try {
-          const options = {
-            types: [{
-              description: 'iCalendar Files',
-              accept: { 'text/calendar': ['.ics'] }
-            }]
-          };
           const handle = await window.showSaveFilePicker({
             suggestedName: 'roster.ics',
-            ...options
+            types: [{ description: 'ICS file', accept: { 'text/calendar': ['.ics'] } }]
           });
           const writable = await handle.createWritable();
           await writable.write(blob);
@@ -87,7 +96,6 @@
           alert('Save cancelled or failed.');
         }
       } else {
-        // Fallback for browsers without file picker
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
         link.download = 'roster.ics';
@@ -95,6 +103,14 @@
         link.click();
         document.body.removeChild(link);
       }
+    }
+
+    function generatePrintout() {
+      const input = document.getElementById('rosterInput').value.trim();
+      if (!input) return alert("Paste your roster first.");
+      const printPreview = formatForPrint(input.split('\n'));
+      document.getElementById('printArea').textContent = printPreview;
+      window.print();
     }
   </script>
 </body>
