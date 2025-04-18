@@ -25,15 +25,13 @@
     @media print {
       body { background: white; margin: 0; }
       .container { box-shadow: none; padding: 0; max-width: 100%; }
-      textarea, button, #printAreaLabel { display: none; }
+      textarea, button { display: none; }
       table#printTable { display: table; }
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h2>Paste Your Roster</h2>
-    <p>Ensure data is pasted exactly as from your roster table export (including multi-line rows).</p>
     <textarea id="rosterInput" placeholder="Paste full roster block here..."></textarea><br/>
     <button onclick="generatePrintout()">Print This Page</button>
     <button onclick="generateICS()">Download ICS File</button>
@@ -65,28 +63,27 @@
       if (!input) return alert("Paste your roster first.");
 
       const lines = input.split('\n');
-      const newBlockRegex = /^\d{2}\/\w{3}\/\d{4}\t/;
-      const timeSummaryRegex = /^\d{1,2}:\d{2}\t\d{1,2}:\d{2}\t\d{1,2}:\d{2}\t\d{1,2}:\d{2}$/;
+      const newBlockRegex = /^\d{2}\/\w{3}\/\d{4}[ \t]/;
+      const timeSummaryRegex = /^\d{1,2}:\d{2}[ \t]+\d{1,2}:\d{2}[ \t]+\d{1,2}:\d{2}[ \t]+\d{1,2}:\d{2}$/;
       let buffer = [];
       let events = [];
 
       function flushRow() {
         if (!buffer.length) return;
         const row = Array(10).fill('');
-        const start = buffer[0].split('\t');
+        const start = buffer[0].split(/\t| {2,}/);
         for (let i = 0; i < start.length && i < 5; i++) row[i] = start[i];
 
         const summaryIndex = buffer.findIndex(l => timeSummaryRegex.test(l));
         let summary = [];
         if (summaryIndex !== -1) {
-          summary = buffer[summaryIndex].split('\t');
+          summary = buffer[summaryIndex].split(/\t| {2,}/);
           buffer.splice(summaryIndex, 1);
         }
 
         row[5] = buffer.slice(1).join('\n');
         for (let i = 0; i < summary.length; i++) row[6 + i] = summary[i];
 
-        // ICS conversion
         const dateStr = row[0];
         const brief = row[2] || '00:00';
         const debrief = row[3] || '00:00';
@@ -132,8 +129,8 @@
       const table = document.getElementById('printTable');
       tbody.innerHTML = '';
 
-      const newBlockRegex = /^\d{2}\/\w{3}\/\d{4}\t/;
-      const timeSummaryRegex = /^\d{1,2}:\d{2}\t\d{1,2}:\d{2}\t\d{1,2}:\d{2}\t\d{1,2}:\d{2}$/;
+      const newBlockRegex = /^\d{2}\/\w{3}\/\d{4}[ \t]/;
+      const timeSummaryRegex = /^\d{1,2}:\d{2}[ \t]+\d{1,2}:\d{2}[ \t]+\d{1,2}:\d{2}[ \t]+\d{1,2}:\d{2}$/;
 
       let buffer = [];
 
@@ -141,13 +138,13 @@
         if (!buffer.length) return;
 
         const row = Array(10).fill('');
-        const start = buffer[0].split('\t');
+        const start = buffer[0].split(/\t| {2,}/);
         for (let i = 0; i < start.length && i < 5; i++) row[i] = start[i];
 
         const summaryIndex = buffer.findIndex(l => timeSummaryRegex.test(l));
         let summary = [];
         if (summaryIndex !== -1) {
-          summary = buffer[summaryIndex].split('\t');
+          summary = buffer[summaryIndex].split(/\t| {2,}/);
           buffer.splice(summaryIndex, 1);
         }
 
