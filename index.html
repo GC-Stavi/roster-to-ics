@@ -119,11 +119,13 @@
     function generatePrintout() {
       const input = document.getElementById('rosterInput').value.trim();
       if (!input) return alert("Paste your roster first.");
-      const lines = input.split('\n');
+      const lines = input.split('
+');
       const tbody = document.getElementById('printTableBody');
+      const table = document.getElementById('printTable');
       tbody.innerHTML = '';
       lines.forEach(line => {
-        const [date, duty, brief, end, details] = line.split(/\t|\|/).map(x => x.trim());
+        const [date, duty, brief, end, details] = line.split(/	|\|/).map(x => x.trim());
         const row = document.createElement('tr');
         [date, duty, brief, end, details].forEach(cell => {
           const td = document.createElement('td');
@@ -132,7 +134,10 @@
         });
         tbody.appendChild(row);
       });
+      table.style.display = 'table';
       window.print();
+      table.style.display = 'none';
+    }
     }
   </script>
 </body>
