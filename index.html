@@ -8,16 +8,17 @@
     body { font-family: sans-serif; margin: 2em; background: #f8f8f8; }
     textarea { width: 100%; height: 300px; font-family: monospace; padding: 1em; }
     button { margin: 0.5em 0.5em 0 0; padding: 0.8em 1.5em; font-size: 1em; cursor: pointer; }
-    .container { max-width: 800px; margin: auto; background: #fff; padding: 2em; box-shadow: 0 0 10px #ccc; border-radius: 8px; }
+    .container { max-width: 1000px; margin: auto; background: #fff; padding: 2em; box-shadow: 0 0 10px #ccc; border-radius: 8px; }
 
     table#printTable { width: 100%; border-collapse: collapse; margin-top: 2em; display: none; }
     table#printTable, table#printTable th, table#printTable td {
       border: 1px solid #333;
     }
     table#printTable th, table#printTable td {
-      padding: 4px 8px;
-      font-size: 11pt;
+      padding: 4px 6px;
+      font-size: 10pt;
       text-align: left;
+      vertical-align: top;
     }
 
     @media print {
@@ -31,19 +32,24 @@
 <body>
   <div class="container">
     <h2>Paste Your Roster</h2>
-    <p>Format: Date (dd/mm/yyyy) | Duty | Brief | End | Details (tab or pipe-delimited)</p>
-    <textarea id="rosterInput" placeholder="01/04/2025	RDO			BNE / BNE/- 00:00L/ 23:59L\n02/04/2025	FLY	05:10	16:45	QF1927 BNE / ADL/- 06:10L/ 09:28L"></textarea><br/>
+    <p>Ensure data is tab-separated in the format below:</p>
+    <textarea id="rosterInput" placeholder="Duty Date	Duty	Brief Time	Debrief Time	Layover	Details	Duty hours	Flight hours	Pax Hours	Credit Hours"></textarea><br/>
     <button onclick="generateICS()">Download ICS File</button>
     <button onclick="generatePrintout()">Print This Page</button>
 
     <table id="printTable">
       <thead>
         <tr>
-          <th>Date</th>
+          <th>Duty Date</th>
           <th>Duty</th>
           <th>Brief</th>
-          <th>End</th>
+          <th>Debrief</th>
+          <th>Layover</th>
           <th>Details</th>
+          <th>Duty</th>
+          <th>Flight</th>
+          <th>Pax</th>
+          <th>Credit</th>
         </tr>
       </thead>
       <tbody id="printTableBody"></tbody>
@@ -51,93 +57,29 @@
   </div>
 
   <script>
-    function formatDateForICS(dateStr) {
-      const [d, m, y] = dateStr.split('/');
-      return `${y}${m.padStart(2, '0')}${d.padStart(2, '0')}`;
-    }
-
-    async function generateICS() {
-      const input = document.getElementById('rosterInput').value.trim();
-      if (!input) return alert("Please paste your roster first.");
-
-      const lines = input.split('\n');
-      let ics = `BEGIN:VCALENDAR\nVERSION:2.0\nCALSCALE:GREGORIAN\nMETHOD:PUBLISH\nX-WR-TIMEZONE:Australia/Brisbane\nBEGIN:VTIMEZONE\nTZID:Australia/Brisbane\nBEGIN:STANDARD\nDTSTART:19700101T000000\nTZOFFSETFROM:+1000\nTZOFFSETTO:+1000\nTZNAME:AEST\nEND:STANDARD\nEND:VTIMEZONE\n`;
-
-      lines.forEach((line, i) => {
-        const parts = line.split(/\t|\|/);
-        const [dateStr, duty, brief, end, details] = parts.map(p => p.trim());
-        if (!dateStr || !duty) return;
-
-        const [d, m, y] = dateStr.split('/');
-        const yyyymmdd = `${y}${m.padStart(2, '0')}${d.padStart(2, '0')}`;
-        const dateObj = new Date(`${y}-${m}-${d}`);
-        if (isNaN(dateObj)) return;
-
-        const uid = `roster-${yyyymmdd}-${i}`;
-        const cleanDetails = details || '';
-        const summary = `${duty} ${cleanDetails}`;
-
-        if (!brief || !end) {
-          const dtEnd = new Date(dateObj.getTime() + 86400000).toISOString().split('T')[0].replace(/-/g, '');
-          ics += `BEGIN:VEVENT\nDTSTART;VALUE=DATE:${yyyymmdd}\nDTEND;VALUE=DATE:${dtEnd}\nSUMMARY:${summary}\nDESCRIPTION:Brief: ${brief || ''} | ${cleanDetails}\nUID:${uid}@roster.local\nDTSTAMP:${yyyymmdd}T000000Z\nEND:VEVENT\n`;
-        } else {
-          const [bh, bm] = brief.split(':');
-          const [eh, em] = end.split(':');
-          const dtStart = `${yyyymmdd}T${bh.padStart(2, '0')}${bm.padStart(2, '0')}00`;
-          const dtEnd = `${yyyymmdd}T${eh.padStart(2, '0')}${em.padStart(2, '0')}00`;
-
-          ics += `BEGIN:VEVENT\nDTSTART;TZID=Australia/Brisbane:${dtStart}\nDTEND;TZID=Australia/Brisbane:${dtEnd}\nSUMMARY:${summary}\nDESCRIPTION:Brief: ${brief} | ${cleanDetails}\nUID:${uid}@roster.local\nDTSTAMP:${yyyymmdd}T000000Z\nEND:VEVENT\n`;
-        }
-      });
-
-      ics += `END:VCALENDAR`;
-      const blob = new Blob([ics], { type: 'text/calendar' });
-
-      if ('showSaveFilePicker' in window) {
-        try {
-          const handle = await window.showSaveFilePicker({
-            suggestedName: 'roster.ics',
-            types: [{ description: 'ICS file', accept: { 'text/calendar': ['.ics'] } }]
-          });
-          const writable = await handle.createWritable();
-          await writable.write(blob);
-          await writable.close();
-          alert('ICS file saved successfully.');
-        } catch (err) {
-          alert('Save cancelled or failed.');
-        }
-      } else {
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = 'roster.ics';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      }
-    }
-
     function generatePrintout() {
       const input = document.getElementById('rosterInput').value.trim();
       if (!input) return alert("Paste your roster first.");
-      const lines = input.split('
-');
+      const lines = input.split('\n');
       const tbody = document.getElementById('printTableBody');
       const table = document.getElementById('printTable');
       tbody.innerHTML = '';
+
       lines.forEach(line => {
-        const [date, duty, brief, end, details] = line.split(/	|\|/).map(x => x.trim());
+        const parts = line.split(/\t|\|/).map(x => x.trim());
+        while (parts.length < 10) parts.push('');
         const row = document.createElement('tr');
-        [date, duty, brief, end, details].forEach(cell => {
+        parts.slice(0, 10).forEach(cell => {
           const td = document.createElement('td');
           td.textContent = cell || '';
           row.appendChild(td);
         });
         tbody.appendChild(row);
       });
+
       table.style.display = 'table';
       window.print();
       table.style.display = 'none';
-    }
     }
   </script>
 </body>
