@@ -66,52 +66,48 @@
       const table = document.getElementById('printTable');
       tbody.innerHTML = '';
 
-      const dateRegex = /^\d{2}\/\w{3}\/\d{4}$/;
-      let currentRow = Array(10).fill('');
-      let detailLines = [];
+      const dateRegex = /^\w{3} \d{2}\/\d{2}\/\d{2}$/;
+      const compactDateRegex = /^\d{2}\/\w{3}\/\d{4}$/;
+      let buffer = [];
 
-      lines.forEach((line, index) => {
-        const parts = line.split('\t');
-        const firstPart = parts[0].trim();
+      function flushRow() {
+        if (buffer.length === 0) return;
 
-        if (dateRegex.test(firstPart)) {
-          // Push previous row before starting new one
-          if (currentRow[0]) {
-            currentRow[5] = detailLines.join("\n");
-            appendRow(currentRow);
-            currentRow = Array(10).fill('');
-            detailLines = [];
-          }
+        const baseLine = buffer[0].split('\t');
+        const summaryLine = buffer.find(l => l.match(/^\d+:\d+\t/));
+        const detailLines = buffer.slice(1).filter(l => l !== summaryLine);
 
-          // Fill base fields
-          for (let i = 0; i < Math.min(parts.length, 5); i++) {
-            currentRow[i] = parts[i].trim();
-          }
-        } else if (parts.length >= 4 && parts.every(p => /^\d+:\d+$/.test(p.trim()) || p.trim() === '')) {
-          for (let i = 0; i < 4; i++) {
-            currentRow[6 + i] = parts[i] ? parts[i].trim() : '';
-          }
-        } else if (line.trim()) {
-          detailLines.push(line.trim());
+        const row = Array(10).fill('');
+        for (let i = 0; i < baseLine.length && i < 5; i++) {
+          row[i] = baseLine[i];
         }
-      });
+        row[5] = detailLines.join('\n');
 
-      // Push last row
-      if (currentRow[0]) {
-        currentRow[5] = detailLines.join("\n");
-        appendRow(currentRow);
-      }
+        if (summaryLine) {
+          const summary = summaryLine.split('\t');
+          for (let i = 0; i < 4 && i < summary.length; i++) {
+            row[6 + i] = summary[i];
+          }
+        }
 
-      function appendRow(rowData) {
-        const row = document.createElement('tr');
-        rowData.forEach(cell => {
+        const tr = document.createElement('tr');
+        row.forEach((cell, i) => {
           const td = document.createElement('td');
           td.textContent = cell;
-          row.appendChild(td);
+          tr.appendChild(td);
         });
-        tbody.appendChild(row);
+        tbody.appendChild(tr);
+        buffer = [];
       }
 
+      lines.forEach(line => {
+        if (line.match(/^\w{3} \d{2}\/\d{2}\/\d{2}$/) || line.match(/^\d{2}\/\w{3}\/\d{4}$/)) {
+          flushRow();
+        }
+        buffer.push(line);
+      });
+
+      flushRow();
       table.style.display = 'table';
       window.print();
       table.style.display = 'none';
