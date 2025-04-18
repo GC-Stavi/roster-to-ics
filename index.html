@@ -10,15 +10,22 @@
     button { margin: 0.5em 0.5em 0 0; padding: 0.8em 1.5em; font-size: 1em; cursor: pointer; }
     .container { max-width: 800px; margin: auto; background: #fff; padding: 2em; box-shadow: 0 0 10px #ccc; border-radius: 8px; }
 
+    table#printTable { width: 100%; border-collapse: collapse; margin-top: 2em; display: none; }
+    table#printTable, table#printTable th, table#printTable td {
+      border: 1px solid #333;
+    }
+    table#printTable th, table#printTable td {
+      padding: 4px 8px;
+      font-size: 11pt;
+      text-align: left;
+    }
+
     @media print {
       body { background: white; margin: 0; }
       .container { box-shadow: none; padding: 0; max-width: 100%; }
-      textarea { display: none; }
-      button { display: none; }
-      pre#printArea { display: block; white-space: pre-wrap; font-family: monospace; font-size: 11pt; }
+      textarea, button, #printAreaLabel { display: none; }
+      table#printTable { display: table; }
     }
-
-    pre#printArea { display: none; white-space: pre-wrap; font-family: monospace; font-size: 11pt; line-height: 1.4; }
   </style>
 </head>
 <body>
@@ -28,21 +35,25 @@
     <textarea id="rosterInput" placeholder="01/04/2025	RDO			BNE / BNE/- 00:00L/ 23:59L\n02/04/2025	FLY	05:10	16:45	QF1927 BNE / ADL/- 06:10L/ 09:28L"></textarea><br/>
     <button onclick="generateICS()">Download ICS File</button>
     <button onclick="generatePrintout()">Print This Page</button>
-    <pre id="printArea"></pre>
+
+    <table id="printTable">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Duty</th>
+          <th>Brief</th>
+          <th>End</th>
+          <th>Details</th>
+        </tr>
+      </thead>
+      <tbody id="printTableBody"></tbody>
+    </table>
   </div>
 
   <script>
     function formatDateForICS(dateStr) {
       const [d, m, y] = dateStr.split('/');
       return `${y}${m.padStart(2, '0')}${d.padStart(2, '0')}`;
-    }
-
-    function formatForPrint(lines) {
-      const rows = lines.map(line => {
-        const parts = line.split(/\t|\|/).map(p => p.trim());
-        return parts.slice(0, 5).join("    ");
-      });
-      return rows.join("\n");
     }
 
     async function generateICS() {
@@ -108,8 +119,19 @@
     function generatePrintout() {
       const input = document.getElementById('rosterInput').value.trim();
       if (!input) return alert("Paste your roster first.");
-      const printPreview = formatForPrint(input.split('\n'));
-      document.getElementById('printArea').textContent = printPreview;
+      const lines = input.split('\n');
+      const tbody = document.getElementById('printTableBody');
+      tbody.innerHTML = '';
+      lines.forEach(line => {
+        const [date, duty, brief, end, details] = line.split(/\t|\|/).map(x => x.trim());
+        const row = document.createElement('tr');
+        [date, duty, brief, end, details].forEach(cell => {
+          const td = document.createElement('td');
+          td.textContent = cell || '';
+          row.appendChild(td);
+        });
+        tbody.appendChild(row);
+      });
       window.print();
     }
   </script>
