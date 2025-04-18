@@ -19,6 +19,7 @@
       font-size: 10pt;
       text-align: left;
       vertical-align: top;
+      white-space: pre-wrap;
     }
 
     @media print {
@@ -66,41 +67,42 @@
       tbody.innerHTML = '';
 
       const dateRegex = /^\d{2}\/\w{3}\/\d{4}$/;
-      let currentRow = null;
-      let details = [];
+      let currentRow = Array(10).fill('');
+      let detailLines = [];
 
       lines.forEach((line, index) => {
-        const cells = line.split('\t').map(x => x.trim());
+        const parts = line.split('\t');
+        const firstPart = parts[0].trim();
 
-        if (dateRegex.test(cells[0])) {
-          // Save existing row
-          if (currentRow) {
-            currentRow[5] = details.join("\n");
+        if (dateRegex.test(firstPart)) {
+          // Push previous row before starting new one
+          if (currentRow[0]) {
+            currentRow[5] = detailLines.join("\n");
             appendRow(currentRow);
-            details = [];
+            currentRow = Array(10).fill('');
+            detailLines = [];
           }
-          // Start new row with first 5 columns
-          currentRow = [...cells.slice(0, 5)];
-        } else if (cells.length === 1 && cells[0].match(/\d+:\d+/)) {
-          // Likely a totals row (duty, flight, pax, credit)
-          if (currentRow) {
-            const tail = cells[0].split(/\t|\s+/).filter(Boolean);
-            currentRow = currentRow.concat(tail.slice(0, 4));
+
+          // Fill base fields
+          for (let i = 0; i < Math.min(parts.length, 5); i++) {
+            currentRow[i] = parts[i].trim();
           }
-        } else {
-          // Add to details
-          if (cells[0]) details.push(cells[0]);
+        } else if (parts.length >= 4 && parts.every(p => /^\d+:\d+$/.test(p.trim()) || p.trim() === '')) {
+          for (let i = 0; i < 4; i++) {
+            currentRow[6 + i] = parts[i] ? parts[i].trim() : '';
+          }
+        } else if (line.trim()) {
+          detailLines.push(line.trim());
         }
       });
 
-      // Final row
-      if (currentRow) {
-        currentRow[5] = details.join("\n");
+      // Push last row
+      if (currentRow[0]) {
+        currentRow[5] = detailLines.join("\n");
         appendRow(currentRow);
       }
 
       function appendRow(rowData) {
-        while (rowData.length < 10) rowData.push('');
         const row = document.createElement('tr');
         rowData.forEach(cell => {
           const td = document.createElement('td');
