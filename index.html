@@ -32,9 +32,8 @@
 <body>
   <div class="container">
     <h2>Paste Your Roster</h2>
-    <p>Ensure data is tab-separated in the format below:</p>
-    <textarea id="rosterInput" placeholder="Duty Date	Duty	Brief Time	Debrief Time	Layover	Details	Duty hours	Flight hours	Pax Hours	Credit Hours"></textarea><br/>
-    <button onclick="generateICS()">Download ICS File</button>
+    <p>Ensure data is pasted exactly as from your roster table export (including multi-line rows).</p>
+    <textarea id="rosterInput" placeholder="Paste full roster block here..."></textarea><br/>
     <button onclick="generatePrintout()">Print This Page</button>
 
     <table id="printTable">
@@ -60,22 +59,56 @@
     function generatePrintout() {
       const input = document.getElementById('rosterInput').value.trim();
       if (!input) return alert("Paste your roster first.");
+
       const lines = input.split('\n');
       const tbody = document.getElementById('printTableBody');
       const table = document.getElementById('printTable');
       tbody.innerHTML = '';
 
-      lines.forEach(line => {
-        const parts = line.split(/\t|\|/).map(x => x.trim());
-        while (parts.length < 10) parts.push('');
+      const dateRegex = /^\d{2}\/\w{3}\/\d{4}$/;
+      let currentRow = null;
+      let details = [];
+
+      lines.forEach((line, index) => {
+        const cells = line.split('\t').map(x => x.trim());
+
+        if (dateRegex.test(cells[0])) {
+          // Save existing row
+          if (currentRow) {
+            currentRow[5] = details.join("\n");
+            appendRow(currentRow);
+            details = [];
+          }
+          // Start new row with first 5 columns
+          currentRow = [...cells.slice(0, 5)];
+        } else if (cells.length === 1 && cells[0].match(/\d+:\d+/)) {
+          // Likely a totals row (duty, flight, pax, credit)
+          if (currentRow) {
+            const tail = cells[0].split(/\t|\s+/).filter(Boolean);
+            currentRow = currentRow.concat(tail.slice(0, 4));
+          }
+        } else {
+          // Add to details
+          if (cells[0]) details.push(cells[0]);
+        }
+      });
+
+      // Final row
+      if (currentRow) {
+        currentRow[5] = details.join("\n");
+        appendRow(currentRow);
+      }
+
+      function appendRow(rowData) {
+        while (rowData.length < 10) rowData.push('');
         const row = document.createElement('tr');
-        parts.slice(0, 10).forEach(cell => {
+        rowData.forEach(cell => {
           const td = document.createElement('td');
-          td.textContent = cell || '';
+          td.textContent = cell;
           row.appendChild(td);
         });
         tbody.appendChild(row);
-      });
+      }
 
       table.style.display = 'table';
       window.print();
