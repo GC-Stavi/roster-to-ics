@@ -58,15 +58,19 @@
   <script>
     function pad(n) { return n.toString().padStart(2, '0'); }
 
-    function generateICS() {
-      const input = document.getElementById('rosterInput').value.trim();
-      if (!input) return alert("Paste your roster first.");
+    function cleanHeaderLines(lines) {
+      const headerLine = 'Duty Date\tDuty\tBrief Time\tDebrief Time\tLayover\tDetails\tDuty hours\tFlight hours\tPax Hours\tCredit Hours';
+      return lines.filter(line => line.trim() !== '' && line.trim() !== headerLine);
+    }
 
-      const lines = input.split('\n');
+    function generateICS() {
+      let lines = document.getElementById('rosterInput').value.trim().split('\n');
+      if (!lines.length) return alert("Paste your roster first.");
+      lines = cleanHeaderLines(lines);
+
       const newBlockRegex = /^\d{2}\/\w{3}\/\d{4}[ \t]/;
       const timeSummaryRegex = /^\d{1,2}:\d{2}[ \t]+\d{1,2}:\d{2}[ \t]+\d{1,2}:\d{2}[ \t]+\d{1,2}:\d{2}$/;
-      let buffer = [];
-      let events = [];
+      let buffer = [], events = [];
 
       function flushRow() {
         if (!buffer.length) return;
@@ -84,15 +88,14 @@
         row[5] = buffer.slice(1).join('\n');
         for (let i = 0; i < summary.length; i++) row[6 + i] = summary[i];
 
-        const dateStr = row[0];
+        const [dd, mon, yyyy] = row[0].split(/[\/\s]/);
+        const months = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+        const d = new Date(yyyy, months[mon], dd);
+
         const brief = row[2] || '00:00';
         const debrief = row[3] || '00:00';
         const duty = row[1];
         const details = row[5].replace(/\n/g, ' | ');
-        const [dd, mon, yyyy] = dateStr.split(/[\/\s]/);
-        const months = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
-        const d = new Date(yyyy, months[mon], dd);
-
         const formatTime = (t) => t.replace(/:/g, '') + '00';
 
         const dtStart = yyyy + pad(d.getMonth() + 1) + pad(d.getDate()) + 'T' + formatTime(brief);
@@ -121,17 +124,16 @@
     }
 
     function generatePrintout() {
-      const input = document.getElementById('rosterInput').value.trim();
-      if (!input) return alert("Paste your roster first.");
+      let lines = document.getElementById('rosterInput').value.trim().split('\n');
+      if (!lines.length) return alert("Paste your roster first.");
+      lines = cleanHeaderLines(lines);
 
-      const lines = input.split('\n');
       const tbody = document.getElementById('printTableBody');
       const table = document.getElementById('printTable');
       tbody.innerHTML = '';
 
       const newBlockRegex = /^\d{2}\/\w{3}\/\d{4}[ \t]/;
       const timeSummaryRegex = /^\d{1,2}:\d{2}[ \t]+\d{1,2}:\d{2}[ \t]+\d{1,2}:\d{2}[ \t]+\d{1,2}:\d{2}$/;
-
       let buffer = [];
 
       function flushRow() {
