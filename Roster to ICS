@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Roster to ICS Exporter</title>
+  <style>
+    body { font-family: sans-serif; margin: 2em; background: #f8f8f8; }
+    textarea { width: 100%; height: 300px; font-family: monospace; padding: 1em; }
+    button { margin-top: 1em; padding: 0.8em 1.5em; font-size: 1em; cursor: pointer; }
+    .container { max-width: 800px; margin: auto; background: #fff; padding: 2em; box-shadow: 0 0 10px #ccc; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Paste Your Roster</h2>
+    <p>Format: Date (dd/mm/yyyy) | Duty | Brief | End | Details (pipe-separated or tab works)</p>
+    <textarea id="rosterInput" placeholder="01/04/2025	RDO			BNE / BNE/- 00:00L/ 23:59L\n02/04/2025	FLY	05:10	16:45	QF1927 BNE / ADL/- 06:10L/ 09:28L"></textarea>
+    <button onclick="generateICS()">Generate ICS File</button>
+  </div>
+
+  <script>
+    function generateICS() {
+      const input = document.getElementById('rosterInput').value.trim();
+      if (!input) return alert("Please paste your roster first.");
+
+      const lines = input.split('\n');
+      let ics = `BEGIN:VCALENDAR\nVERSION:2.0\nCALSCALE:GREGORIAN\nMETHOD:PUBLISH\nX-WR-TIMEZONE:Australia/Brisbane\nBEGIN:VTIMEZONE\nTZID:Australia/Brisbane\nBEGIN:STANDARD\nDTSTART:19700101T000000\nTZOFFSETFROM:+1000\nTZOFFSETTO:+1000\nTZNAME:AEST\nEND:STANDARD\nEND:VTIMEZONE\n`;
+
+      lines.forEach((line, i) => {
+        const parts = line.split(/\t|\|/);
+        const [dateStr, duty, brief, end, details] = parts.map(p => p.trim());
+        if (!dateStr || !duty) return;
+
+        const [d, m, y] = dateStr.split('/');
+        const dateObj = new Date(`${y}-${m}-${d}`);
+        if (isNaN(dateObj)) return;
+
+        const uid = `roster-${y}${m}${d}-${i}`;
+        if (!brief || !end) {
+          // All-day event (e.g. RDO/STBY)
+          const dtStart = `${y}${m}${d}`;
+          const dtEnd = new Date(dateObj.getTime() + 86400000); // +1 day
+          const dtEndStr = dtEnd.toISOString().split('T')[0].replace(/-/g, '');
+          ics += `BEGIN:VEVENT\nDTSTART;VALUE=DATE:${dtStart}\nDTEND;VALUE=DATE:${dtEndStr}\nSUMMARY:${duty} ${details || ''}\nDESCRIPTION:Brief: ${brief || ''} | ${details || ''}\nUID:${uid}@roster.local\nDTSTAMP:${y}${m}${d}T000000Z\nEND:VEVENT\n`;
+        } else {
+          // Timed event (FLY)
+          const briefParts = brief.split(':');
+          const endParts = end.split(':');
+          const dtStart = `${y}${m}${d}T${briefParts[0].padStart(2, '0')}${briefParts[1].padStart(2, '0')}00`;
+          const dtEnd = `${y}${m}${d}T${endParts[0].padStart(2, '0')}${endParts[1].padStart(2, '0')}00`;
+
+          ics += `BEGIN:VEVENT\nDTSTART;TZID=Australia/Brisbane:${dtStart}\nDTEND;TZID=Australia/Brisbane:${dtEnd}\nSUMMARY:${duty} ${details || ''}\nDESCRIPTION:Brief: ${brief} | ${details || ''}\nUID:${uid}@roster.local\nDTSTAMP:${y}${m}${d}T000000Z\nEND:VEVENT\n`;
+        }
+      });
+
+      ics += `END:VCALENDAR`;
+
+      const blob = new Blob([ics], { type: 'text/calendar' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'roster.ics';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  </script>
+</body>
+</html>
