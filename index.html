@@ -14,14 +14,14 @@
 <body>
   <div class="container">
     <h2>Paste Your Roster</h2>
-    <p>Format: Date (dd/mm/yyyy) | Duty | Brief | End | Details (pipe-separated or tab works)</p>
+    <p>Format: Date (dd/mm/yyyy) | Duty | Brief | End | Details (tab or pipe-delimited)</p>
     <textarea id="rosterInput" placeholder="01/04/2025	RDO			BNE / BNE/- 00:00L/ 23:59L\n02/04/2025	FLY	05:10	16:45	QF1927 BNE / ADL/- 06:10L/ 09:28L"></textarea><br/>
     <button onclick="generateICS()">Download ICS File</button>
     <button onclick="window.print()">Print This Page</button>
   </div>
 
   <script>
-    function generateICS() {
+    async function generateICS() {
       const input = document.getElementById('rosterInput').value.trim();
       if (!input) return alert("Please paste your roster first.");
 
@@ -35,39 +35,66 @@
 
         const [d, m, y] = dateStr.split('/');
         if (!d || !m || !y) return;
+
         const yyyymmdd = `${y}${m.padStart(2, '0')}${d.padStart(2, '0')}`;
         const dateObj = new Date(`${y}-${m}-${d}`);
         if (isNaN(dateObj)) return;
 
         const uid = `roster-${yyyymmdd}-${i}`;
+        const cleanDetails = details || '';
+        const summary = `${duty} ${cleanDetails}`;
 
         if (!brief || !end) {
-          // All-day event (RDO/STBY)
+          // All-day event
           const dtStart = yyyymmdd;
-          const dtEndDate = new Date(dateObj.getTime() + 86400000); // +1 day
-          const dtEnd = dtEndDate.toISOString().split('T')[0].replace(/-/g, '');
+          const dtEndObj = new Date(dateObj.getTime() + 86400000); // +1 day
+          const dtEnd = dtEndObj.toISOString().split('T')[0].replace(/-/g, '');
 
-          ics += `BEGIN:VEVENT\nDTSTART;VALUE=DATE:${dtStart}\nDTEND;VALUE=DATE:${dtEnd}\nSUMMARY:${duty} ${details || ''}\nDESCRIPTION:Brief: ${brief || ''} | ${details || ''}\nUID:${uid}@roster.local\nDTSTAMP:${yyyymmdd}T000000Z\nEND:VEVENT\n`;
+          ics += `BEGIN:VEVENT\nDTSTART;VALUE=DATE:${dtStart}\nDTEND;VALUE=DATE:${dtEnd}\nSUMMARY:${summary}\nDESCRIPTION:Brief: ${brief || ''} | ${cleanDetails}\nUID:${uid}@roster.local\nDTSTAMP:${yyyymmdd}T000000Z\nEND:VEVENT\n`;
         } else {
-          // Timed event (FLY)
+          // Timed event
           const briefParts = brief.split(':');
           const endParts = end.split(':');
           const dtStart = `${yyyymmdd}T${briefParts[0].padStart(2, '0')}${briefParts[1].padStart(2, '0')}00`;
           const dtEnd = `${yyyymmdd}T${endParts[0].padStart(2, '0')}${endParts[1].padStart(2, '0')}00`;
 
-          ics += `BEGIN:VEVENT\nDTSTART;TZID=Australia/Brisbane:${dtStart}\nDTEND;TZID=Australia/Brisbane:${dtEnd}\nSUMMARY:${duty} ${details || ''}\nDESCRIPTION:Brief: ${brief} | ${details || ''}\nUID:${uid}@roster.local\nDTSTAMP:${yyyymmdd}T000000Z\nEND:VEVENT\n`;
+          ics += `BEGIN:VEVENT\nDTSTART;TZID=Australia/Brisbane:${dtStart}\nDTEND;TZID=Australia/Brisbane:${dtEnd}\nSUMMARY:${summary}\nDESCRIPTION:Brief: ${brief} | ${cleanDetails}\nUID:${uid}@roster.local\nDTSTAMP:${yyyymmdd}T000000Z\nEND:VEVENT\n`;
         }
       });
 
       ics += `END:VCALENDAR`;
 
       const blob = new Blob([ics], { type: 'text/calendar' });
-      const file = new File([blob], 'roster.ics', { type: 'text/calendar' });
 
-      const fileHandle = document.createElement('a');
-      fileHandle.href = URL.createObjectURL(file);
-      fileHandle.download = file.name;
-      fileHandle.click();
+      // Use File System Access API if available
+      if ('showSaveFilePicker' in window) {
+        try {
+          const options = {
+            types: [{
+              description: 'iCalendar Files',
+              accept: { 'text/calendar': ['.ics'] }
+            }]
+          };
+          const handle = await window.showSaveFilePicker({
+            suggestedName: 'roster.ics',
+            ...options
+          });
+          const writable = await handle.createWritable();
+          await writable.write(blob);
+          await writable.close();
+          alert('ICS file saved successfully.');
+        } catch (err) {
+          alert('Save cancelled or failed.');
+        }
+      } else {
+        // Fallback for browsers without file picker
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'roster.ics';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
     }
   </script>
 </body>
