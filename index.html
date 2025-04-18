@@ -78,11 +78,12 @@
         const start = buffer[0].split('\t');
         for (let i = 0; i < start.length && i < 5; i++) row[i] = start[i];
 
-        let lastLine = buffer[buffer.length - 1];
+        // Remove and store the last 4-tab time summary line
+        const summaryIndex = buffer.findIndex(l => timeSummaryRegex.test(l));
         let summary = [];
-        if (timeSummaryRegex.test(lastLine)) {
-          summary = lastLine.split('\t');
-          buffer.pop();
+        if (summaryIndex !== -1) {
+          summary = buffer[summaryIndex].split('\t');
+          buffer.splice(summaryIndex, 1);
         }
 
         row[5] = buffer.slice(1).join('\n');
