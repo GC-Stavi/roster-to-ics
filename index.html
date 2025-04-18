@@ -66,27 +66,32 @@
       const table = document.getElementById('printTable');
       tbody.innerHTML = '';
 
-      const dayDateRegex = /^\w{3} \d{2}\/\d{2}\/\d{2}/;
-      const totalsRegex = /^\d{1,2}:\d{2}\t\d{1,2}:\d{2}\t\d{1,2}:\d{2}\t\d{1,2}:\d{2}$/;
+      const newBlockRegex = /^\d{2}\/\w{3}\/\d{4}\t/;
+      const timeSummaryRegex = /^\d{1,2}:\d{2}\t\d{1,2}:\d{2}\t\d{1,2}:\d{2}\t\d{1,2}:\d{2}$/;
 
       let buffer = [];
 
       function flushRow() {
-        if (buffer.length === 0) return;
-
-        const firstLine = buffer[0].split('\t');
-        const lastLine = totalsRegex.test(buffer[buffer.length - 1]) ? buffer.pop().split('\t') : [];
-        const details = buffer.slice(1).join('\n');
+        if (!buffer.length) return;
 
         const row = Array(10).fill('');
-        for (let i = 0; i < 5; i++) row[i] = firstLine[i] || '';
-        row[5] = details;
-        for (let i = 0; i < 4; i++) row[6 + i] = lastLine[i] || '';
+        const start = buffer[0].split('\t');
+        for (let i = 0; i < start.length && i < 5; i++) row[i] = start[i];
+
+        let lastLine = buffer[buffer.length - 1];
+        let summary = [];
+        if (timeSummaryRegex.test(lastLine)) {
+          summary = lastLine.split('\t');
+          buffer.pop();
+        }
+
+        row[5] = buffer.slice(1).join('\n');
+        for (let i = 0; i < summary.length; i++) row[6 + i] = summary[i];
 
         const tr = document.createElement('tr');
-        row.forEach(cell => {
+        row.forEach(val => {
           const td = document.createElement('td');
-          td.textContent = cell;
+          td.textContent = val;
           tr.appendChild(td);
         });
         tbody.appendChild(tr);
@@ -94,7 +99,7 @@
       }
 
       lines.forEach(line => {
-        if (dayDateRegex.test(line)) flushRow();
+        if (newBlockRegex.test(line)) flushRow();
         buffer.push(line);
       });
       flushRow();
