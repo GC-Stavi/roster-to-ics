@@ -61,7 +61,7 @@
     function cleanHeaderLines(lines) {
       const knownHeaders = [
         'Duty Date\tDuty\tBrief Time\tDebrief Time\tLayover\tDetails\tDuty hours\tFlight hours\tPax Hours\tCredit Hours',
-        'Duty\tDate\tDuty\tBrief\tTime\tDebrief\tTime\tLayover' // sometimes split rows
+        'Duty\tDate\tDuty\tBrief\tTime\tDebrief\tTime\tLayover'
       ];
       return lines.filter(line => !knownHeaders.some(h => line.replace(/\s+/g, '').includes(h.replace(/\s+/g, ''))));
     }
@@ -104,7 +104,7 @@
         const dtStart = yyyy + pad(d.getMonth() + 1) + pad(d.getDate()) + 'T' + formatTime(brief);
         const dtEnd = yyyy + pad(d.getMonth() + 1) + pad(d.getDate()) + 'T' + formatTime(debrief);
 
-        events.push(`BEGIN:VEVENT\nSUMMARY:${duty} ${details}\nDTSTART;TZID=Australia/Brisbane:${dtStart}\nDTEND;TZID=Australia/Brisbane:${dtEnd}\nDESCRIPTION:Brief: ${brief} | ${details}\nUID:roster-${dtStart}@roster.local\nDTSTAMP:${dtStart}Z\nEND:VEVENT`);
+        events.push(`BEGIN:VEVENT\nSUMMARY:${duty} ${brief} ${details}\nDTSTART;TZID=Australia/Brisbane:${dtStart}\nDTEND;TZID=Australia/Brisbane:${dtEnd}\nDESCRIPTION:Brief: ${brief} | ${details}\nUID:roster-${dtStart}@roster.local\nDTSTAMP:${dtStart}Z\nEND:VEVENT`);
         buffer = [];
       }
 
