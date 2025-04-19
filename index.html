@@ -10,7 +10,7 @@
     button { margin: 0.5em 0.5em 0 0; padding: 0.6em 1.2em; font-size: 1em; cursor: pointer; }
     .container { max-width: 1000px; margin: auto; background: #fff; padding: 1em; box-shadow: 0 0 10px #ccc; border-radius: 8px; }
 
-    table#printTable { width: 100%; border-collapse: collapse; margin-top: 1em; }
+    table#printTable { width: 100%; border-collapse: collapse; margin-top: 1em; display: none; }
     table#printTable, table#printTable th, table#printTable td {
       border: 1px solid #333;
     }
@@ -26,6 +26,7 @@
       body { background: white; margin: 0; }
       .container { box-shadow: none; padding: 0; max-width: 100%; }
       textarea, button { display: none; }
+      table#printTable { display: table; }
     }
   </style>
 </head>
