@@ -146,6 +146,12 @@
         const start = buffer[0].split(/\t| {2,}/);
         for (let i = 0; i < start.length && i < 5; i++) row[i] = start[i];
 
+        const [dd, mon, yyyy] = row[0].split(/[\/\s]/);
+        const months = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+        const d = new Date(yyyy, months[mon], dd);
+        const dayOfWeek = d.toLocaleDateString('en-AU', { weekday: 'short' });
+        row[0] = `${dayOfWeek} ${row[0]}`;
+
         const summaryIndex = buffer.findIndex(l => timeSummaryRegex.test(l));
         let summary = [];
         if (summaryIndex !== -1) {
