@@ -138,6 +138,18 @@
       const newBlockRegex = /^\d{2}\/\w{3}\/\d{4}[ \t]/;
       const timeSummaryRegex = /^\d{1,2}:\d{2}[ \t]+\d{1,2}:\d{2}[ \t]+\d{1,2}:\d{2}[ \t]+\d{1,2}:\d{2}$/;
       let buffer = [];
+      let totals = [0, 0, 0, 0];
+
+      function parseMinutes(time) {
+        const [h, m] = time.split(':').map(Number);
+        return h * 60 + m;
+      }
+
+      function formatMinutes(mins) {
+        const h = Math.floor(mins / 60);
+        const m = mins % 60;
+        return `${h}:${m.toString().padStart(2, '0')}`;
+      }
 
       function flushRow() {
         if (!buffer.length) return;
@@ -150,7 +162,9 @@
         const months = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
         const d = new Date(yyyy, months[mon], dd);
         const dayOfWeek = d.toLocaleDateString('en-AU', { weekday: 'short' });
+        const fullDay = d.toLocaleDateString('en-AU', { weekday: 'long' });
         row[0] = `${dayOfWeek} ${row[0]}`;
+        const isWeekend = (fullDay === 'Saturday' || fullDay === 'Sunday');
 
         const summaryIndex = buffer.findIndex(l => timeSummaryRegex.test(l));
         let summary = [];
@@ -162,7 +176,14 @@
         row[5] = buffer.slice(1).join('\n');
         for (let i = 0; i < summary.length; i++) row[6 + i] = summary[i];
 
+        for (let i = 6; i <= 9; i++) {
+          if (row[i].match(/^\d{1,2}:\d{2}$/)) {
+            totals[i - 6] += parseMinutes(row[i]);
+          }
+        }
+
         const tr = document.createElement('tr');
+        if (isWeekend) tr.style.backgroundColor = '#e0e0e0';
         row.forEach(val => {
           const td = document.createElement('td');
           td.textContent = val;
@@ -177,6 +198,16 @@
         buffer.push(line);
       });
       flushRow();
+
+      const summaryRow = document.createElement('tr');
+      for (let i = 0; i < 10; i++) {
+        const td = document.createElement('td');
+        if (i >= 6) td.textContent = formatMinutes(totals[i - 6]);
+        summaryRow.appendChild(td);
+      }
+      summaryRow.style.fontWeight = 'bold';
+      summaryRow.style.borderTop = '2px solid #000';
+      tbody.appendChild(summaryRow);
 
       table.style.display = 'table';
       window.print();
