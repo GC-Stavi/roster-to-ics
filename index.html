@@ -22,6 +22,10 @@
       white-space: pre-wrap;
     }
 
+    .weekend-row {
+      background-color: #e0e0e0 !important;
+    }
+
     @media print {
       body { background: white; margin: 0; }
       .container { box-shadow: none; padding: 0; max-width: 100%; }
@@ -183,7 +187,7 @@
         }
 
         const tr = document.createElement('tr');
-        if (isWeekend) tr.style.backgroundColor = '#e0e0e0';
+        if (isWeekend) tr.classList.add('weekend-row');
         row.forEach(val => {
           const td = document.createElement('td');
           td.textContent = val;
