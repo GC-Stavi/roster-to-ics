@@ -16,6 +16,16 @@
       overflow-x: hidden;
     }
 
+    .logo {
+      text-align: center;
+      margin-bottom: 1em;
+    }
+
+    .logo img {
+      max-width: 200px;
+      height: auto;
+    }
+
     .top-controls {
       display: flex;
       justify-content: flex-end;
@@ -85,13 +95,13 @@
     }
 
     @media print {
+      .logo, .top-controls, textarea, button {
+        display: none !important;
+      }
+
       body {
         background: white;
         margin: 0;
-      }
-
-      .top-controls, textarea, button {
-        display: none !important;
       }
 
       .container {
@@ -151,6 +161,10 @@
   </style>
 </head>
 <body>
+  <div class="logo">
+    <img src="c551c75b-2d02-4db7-a5e1-070e27f38781.png" alt="Alliance Airlines Logo">
+  </div>
+
   <div class="top-controls">
     <button class="dark-toggle-btn" onclick="toggleDarkMode()" id="darkModeBtn">Switch to Dark Mode</button>
   </div>
