@@ -5,102 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Roster to ICS Exporter</title>
   <style>
-    * { box-sizing: border-box; }
-
-    body { font-family: sans-serif; margin: 1em; background: #f8f8f8; }
-    textarea {
-      width: 100%;
-      max-width: 100%;
-      display: block;
-      font-family: monospace;
-      padding: 1em;
-    }
-    button {
-      margin: 0.5em 0.5em 0 0;
-      padding: 0.6em 1.2em;
-      font-size: 1em;
-      cursor: pointer;
-    }
-    .container {
-      max-width: 1000px;
-      margin: auto;
-      background: #fff;
-      padding: 1em;
-      box-shadow: 0 0 10px #ccc;
-      border-radius: 8px;
+    * {
+      box-sizing: border-box;
     }
 
-    table#printTable {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 1em;
-      display: none;
-    }
-    table#printTable, table#printTable th, table#printTable td {
-      border: 1px solid #333;
-    }
-    table#printTable th, table#printTable td {
-      padding: 2px 4px;
-      font-size: 9pt;
-      text-align: left;
-      vertical-align: top;
-      white-space: pre-wrap;
+    body {
+      font-family: sans-serif;
+      margin: 1em;
+      background: #f8f8f8;
+      overflow-x: hidden;
     }
 
-    .weekend-row {
-      background-color: #e0e0e0 !important;
-    }
-
-    @media print {
-      body { background: white; margin: 0; }
-      .container { box-shadow: none; padding: 0; max-width: 100%; }
-      textarea, button, .switch-wrapper { display: none; }
-      table#printTable { display: table; }
-      .weekend-row {
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-        background-color: #e0e0e0 !important;
-      }
-    }
-
-    /* Dark Mode Styling */
-    body.dark-mode {
-      background: #121212;
-      color: #f0f0f0;
-    }
-
-    body.dark-mode .container {
-      background: #1e1e1e;
-      box-shadow: 0 0 10px #000;
-    }
-
-    body.dark-mode textarea {
-      background: #2a2a2a;
-      color: #f0f0f0;
-      border: 1px solid #555;
-    }
-
-    body.dark-mode button {
-      background: #333;
-      color: #fff;
-      border: 1px solid #555;
-    }
-
-    body.dark-mode table#printTable {
-      background: #1e1e1e;
-      color: #f0f0f0;
-    }
-
-    body.dark-mode table#printTable th,
-    body.dark-mode table#printTable td {
-      border-color: #555;
-    }
-
-    body.dark-mode .weekend-row {
-      background-color: #2f2f2f !important;
-    }
-
-    /* Dark Mode Toggle Switch */
     .switch-wrapper {
       position: fixed;
       top: 10px;
@@ -158,6 +73,113 @@
 
     input:checked + .slider:before {
       transform: translateX(100px);
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: auto;
+      background: #fff;
+      padding: 1em;
+      box-shadow: 0 0 10px #ccc;
+      border-radius: 8px;
+    }
+
+    textarea {
+      width: 100%;
+      max-width: 100%;
+      display: block;
+      font-family: monospace;
+      padding: 1em;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      margin: 0.5em 0.5em 0 0;
+      padding: 0.6em 1.2em;
+      font-size: 1em;
+      cursor: pointer;
+    }
+
+    table#printTable {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1em;
+      display: none;
+    }
+
+    table#printTable, table#printTable th, table#printTable td {
+      border: 1px solid #333;
+    }
+
+    table#printTable th, table#printTable td {
+      padding: 2px 4px;
+      font-size: 9pt;
+      text-align: left;
+      vertical-align: top;
+      white-space: pre-wrap;
+    }
+
+    .weekend-row {
+      background-color: #e0e0e0 !important;
+    }
+
+    @media print {
+      body {
+        background: white;
+        margin: 0;
+      }
+      .container {
+        box-shadow: none;
+        padding: 0;
+        max-width: 100%;
+      }
+      textarea, button, .switch-wrapper {
+        display: none;
+      }
+      table#printTable {
+        display: table;
+      }
+      .weekend-row {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        background-color: #e0e0e0 !important;
+      }
+    }
+
+    body.dark-mode {
+      background: #121212;
+      color: #f0f0f0;
+    }
+
+    body.dark-mode .container {
+      background: #1e1e1e;
+      box-shadow: 0 0 10px #000;
+    }
+
+    body.dark-mode textarea {
+      background: #2a2a2a;
+      color: #f0f0f0;
+      border: 1px solid #555;
+    }
+
+    body.dark-mode button {
+      background: #333;
+      color: #fff;
+      border: 1px solid #555;
+    }
+
+    body.dark-mode table#printTable {
+      background: #1e1e1e;
+      color: #f0f0f0;
+    }
+
+    body.dark-mode table#printTable th,
+    body.dark-mode table#printTable td {
+      border-color: #555;
+    }
+
+    body.dark-mode .weekend-row {
+      background-color: #2f2f2f !important;
     }
   </style>
 </head>
@@ -353,18 +375,11 @@
     }
 
     function setTheme(mode) {
-      const body = document.body;
       const checkbox = document.getElementById('themeToggle');
       const label = document.getElementById('toggleLabel');
-      if (mode === 'dark') {
-        body.classList.add('dark-mode');
-        checkbox.checked = true;
-        label.textContent = 'Light Mode';
-      } else {
-        body.classList.remove('dark-mode');
-        checkbox.checked = false;
-        label.textContent = 'Dark Mode';
-      }
+      document.body.classList.toggle('dark-mode', mode === 'dark');
+      checkbox.checked = mode === 'dark';
+      label.textContent = mode === 'dark' ? 'Light Mode' : 'Dark Mode';
     }
 
     function toggleDarkMode() {
