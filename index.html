@@ -31,6 +31,11 @@
       .container { box-shadow: none; padding: 0; max-width: 100%; }
       textarea, button { display: none; }
       table#printTable { display: table; }
+      .weekend-row {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        background-color: #e0e0e0 !important;
+      }
     }
   </style>
 </head>
@@ -206,6 +211,7 @@
       const summaryRow = document.createElement('tr');
       for (let i = 0; i < 10; i++) {
         const td = document.createElement('td');
+        if (i === 0) td.textContent = 'TOTAL';
         if (i >= 6) td.textContent = formatMinutes(totals[i - 6]);
         summaryRow.appendChild(td);
       }
