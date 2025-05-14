@@ -16,63 +16,20 @@
       overflow-x: hidden;
     }
 
-    .switch-wrapper {
-      position: fixed;
-      top: 10px;
-      right: 10px;
-      z-index: 1000;
-    }
-
-    .switch {
-      position: relative;
-      display: inline-block;
-      width: 140px;
-      height: 36px;
-    }
-
-    .switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-
-    .slider {
+    .top-controls {
       display: flex;
-      align-items: center;
-      justify-content: center;
-      position: absolute;
-      cursor: pointer;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: #ccc;
-      color: #000;
-      font-size: 14px;
+      justify-content: flex-end;
+      margin-bottom: 1em;
+    }
+
+    .dark-toggle-btn {
+      padding: 0.6em 1em;
+      font-size: 1em;
       font-weight: bold;
-      transition: background-color 0.3s ease;
-      border-radius: 20px;
-    }
-
-    input:checked + .slider {
-      background-color: #444;
-      color: #fff;
-    }
-
-    .slider:before {
-      content: "";
-      position: absolute;
-      height: 26px;
-      width: 26px;
-      left: 6px;
-      bottom: 5px;
-      background-color: white;
-      transition: transform 0.3s ease;
-      border-radius: 50%;
-    }
-
-    input:checked + .slider:before {
-      transform: translateX(100px);
+      border: 1px solid #ccc;
+      background: #eee;
+      cursor: pointer;
+      border-radius: 6px;
     }
 
     .container {
@@ -84,17 +41,17 @@
       border-radius: 8px;
     }
 
-     textarea {
-  width: 100%;
-  max-width: 100%;
-  display: block;
-  font-family: monospace;
-  padding: 1em;
-  border: 1px solid #ccc;
-  height: 300px;
-  resize: vertical;
-}
-
+    textarea {
+      width: 100%;
+      max-width: 100%;
+      display: block;
+      font-family: monospace;
+      padding: 1em;
+      border: 1px solid #ccc;
+      height: 350px;
+      resize: vertical;
+      font-size: 14px;
+      line-height: 1.5;
     }
 
     button {
@@ -132,17 +89,21 @@
         background: white;
         margin: 0;
       }
+
+      .top-controls, textarea, button {
+        display: none !important;
+      }
+
       .container {
         box-shadow: none;
         padding: 0;
         max-width: 100%;
       }
-      textarea, button, .switch-wrapper {
-        display: none;
-      }
+
       table#printTable {
         display: table;
       }
+
       .weekend-row {
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
@@ -150,6 +111,7 @@
       }
     }
 
+    /* Dark mode */
     body.dark-mode {
       background: #121212;
       color: #f0f0f0;
@@ -166,7 +128,8 @@
       border: 1px solid #555;
     }
 
-    body.dark-mode button {
+    body.dark-mode button,
+    body.dark-mode .dark-toggle-btn {
       background: #333;
       color: #fff;
       border: 1px solid #555;
@@ -188,11 +151,8 @@
   </style>
 </head>
 <body>
-  <div class="switch-wrapper">
-    <label class="switch">
-      <input type="checkbox" id="themeToggle" onchange="toggleDarkMode()">
-      <span class="slider">✈️ <span id="toggleLabel">Dark Mode</span></span>
-    </label>
+  <div class="top-controls">
+    <button class="dark-toggle-btn" onclick="toggleDarkMode()" id="darkModeBtn">✈️ Switch to Dark Mode</button>
   </div>
 
   <div class="container">
@@ -220,14 +180,20 @@
   </div>
 
   <script>
-    function pad(n) { return n.toString().padStart(2, '0'); }
+    function pad(n) {
+      return n.toString().padStart(2, '0');
+    }
 
     function cleanHeaderLines(lines) {
       const knownHeaders = [
         'Duty Date\tDuty\tBrief Time\tDebrief Time\tLayover\tDetails\tDuty hours\tFlight hours\tPax Hours\tCredit Hours',
         'Duty\tDate\tDuty\tBrief\tTime\tDebrief\tTime\tLayover'
       ];
-      return lines.filter(line => !knownHeaders.some(h => line.replace(/\s+/g, '').includes(h.replace(/\s+/g, ''))));
+      return lines.filter(line =>
+        !knownHeaders.some(h =>
+          line.replace(/\s+/g, '').includes(h.replace(/\s+/g, ''))
+        )
+      );
     }
 
     function generateICS() {
@@ -256,7 +222,10 @@
         for (let i = 0; i < summary.length; i++) row[6 + i] = summary[i];
 
         const [dd, mon, yyyy] = row[0].split(/[\/\s]/);
-        const months = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+        const months = {
+          Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5,
+          Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11
+        };
         const d = new Date(yyyy, months[mon], dd);
 
         const brief = row[2] || '00:00';
@@ -323,7 +292,10 @@
         for (let i = 0; i < start.length && i < 5; i++) row[i] = start[i];
 
         const [dd, mon, yyyy] = row[0].split(/[\/\s]/);
-        const months = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+        const months = {
+          Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5,
+          Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11
+        };
         const d = new Date(yyyy, months[mon], dd);
         const dayOfWeek = d.toLocaleDateString('en-AU', { weekday: 'short' });
         const fullDay = d.toLocaleDateString('en-AU', { weekday: 'long' });
@@ -378,26 +350,22 @@
       window.print();
     }
 
-    function setTheme(mode) {
-      const checkbox = document.getElementById('themeToggle');
-      const label = document.getElementById('toggleLabel');
-      document.body.classList.toggle('dark-mode', mode === 'dark');
-      checkbox.checked = mode === 'dark';
-      label.textContent = mode === 'dark' ? 'Light Mode' : 'Dark Mode';
-    }
-
     function toggleDarkMode() {
-      const isDark = document.getElementById('themeToggle').checked;
-      document.body.classList.toggle('dark-mode', isDark);
-      document.getElementById('toggleLabel').textContent = isDark ? 'Light Mode' : 'Dark Mode';
+      const body = document.body;
+      const btn = document.getElementById('darkModeBtn');
+      const isDark = body.classList.toggle('dark-mode');
+      btn.textContent = isDark ? '✈️ Switch to Light Mode' : '✈️ Switch to Dark Mode';
       localStorage.setItem('darkMode', isDark ? 'dark' : 'light');
     }
 
     window.onload = function () {
       const saved = localStorage.getItem('darkMode');
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      const theme = saved || (prefersDark ? 'dark' : 'light');
-      setTheme(theme);
+      const shouldDark = saved === 'dark' || (!saved && prefersDark);
+      if (shouldDark) {
+        document.body.classList.add('dark-mode');
+        document.getElementById('darkModeBtn').textContent = '✈️ Switch to Light Mode';
+      }
     };
   </script>
 </body>
