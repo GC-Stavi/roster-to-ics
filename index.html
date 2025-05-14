@@ -37,10 +37,52 @@
         background-color: #e0e0e0 !important;
       }
     }
+
+    /* Dark Mode Styling */
+    body.dark-mode {
+      background: #121212;
+      color: #f0f0f0;
+    }
+
+    body.dark-mode .container {
+      background: #1e1e1e;
+      box-shadow: 0 0 10px #000;
+    }
+
+    body.dark-mode textarea {
+      background: #2a2a2a;
+      color: #f0f0f0;
+      border: 1px solid #555;
+    }
+
+    body.dark-mode button {
+      background: #333;
+      color: #fff;
+      border: 1px solid #555;
+    }
+
+    body.dark-mode table#printTable {
+      background: #1e1e1e;
+      color: #f0f0f0;
+    }
+
+    body.dark-mode table#printTable th,
+    body.dark-mode table#printTable td {
+      border-color: #555;
+    }
+
+    body.dark-mode .weekend-row {
+      background-color: #2f2f2f !important;
+    }
+
+    body.dark-mode .long-duty {
+      background-color: #443b15 !important;
+    }
   </style>
 </head>
 <body>
   <div class="container">
+    <button onclick="toggleDarkMode()" id="themeToggle">✈️ Switch to Dark Mode</button><br/>
     <textarea id="rosterInput" placeholder="Paste your roster here..."></textarea><br/>
     <button onclick="generatePrintout()">Print This Page</button>
     <button onclick="generateICS()">Download ICS File</button>
@@ -222,6 +264,33 @@
       table.style.display = 'table';
       window.print();
     }
+
+    function setTheme(mode) {
+      const body = document.body;
+      const btn = document.getElementById('themeToggle');
+      if (mode === 'dark') {
+        body.classList.add('dark-mode');
+        btn.textContent = '✈️ Switch to Light Mode';
+      } else {
+        body.classList.remove('dark-mode');
+        btn.textContent = '✈️ Switch to Dark Mode';
+      }
+    }
+
+    function toggleDarkMode() {
+      const isDark = document.body.classList.toggle('dark-mode');
+      document.getElementById('themeToggle').textContent = isDark ? '✈️ Switch to Light Mode' : '✈️ Switch to Dark Mode';
+      localStorage.setItem('darkMode', isDark ? 'dark' : 'light');
+    }
+
+    window.onload = function () {
+      const saved = localStorage.getItem('darkMode');
+      if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        setTheme('dark');
+      } else {
+        setTheme('light');
+      }
+    };
   </script>
 </body>
 </html>
