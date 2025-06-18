@@ -4,29 +4,81 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Roster to ICS Exporter</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
-        /* Your existing CSS */
-        * { box-sizing: border-box; }
+        /* Modern Reset and Base Styles */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
         body {
-            font-family: sans-serif;
-            margin: 1em;
-            background: #f8f8f8;
+            font-family: 'Inter', sans-serif;
+            margin: 0; /* Remove default body margin */
+            background: linear-gradient(to bottom right, #f0f4f8, #e0e7ee); /* Soft gradient background */
+            color: #334155; /* Darker text for readability */
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px; /* Add overall padding to the body */
             overflow-x: hidden;
-            position: relative;
+        }
+
+        /* Scrollbar Styling */
+        body::-webkit-scrollbar {
+            width: 8px;
+        }
+        body::-webkit-scrollbar-track {
+            background: #f0f4f8;
+        }
+        body::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+        body::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+
+        header {
+            width: 100%;
+            max-width: 1000px;
+            text-align: center;
+            margin-bottom: 20px;
         }
 
         .logo {
-            text-align: center;
             margin-bottom: 10px;
         }
 
         .logo img {
-            max-width: 180px;
+            max-width: 200px; /* Slightly larger logo */
             height: auto;
             margin-top: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1); /* More pronounced shadow */
+            border-radius: 8px; /* Rounded corners for the logo */
+        }
+
+        h1 {
+            font-size: 2.2em;
+            color: #1e293b;
             margin-bottom: 10px;
-            box-shadow: 0 0 8px rgba(0,0,0,0.05);
+            font-weight: 600;
+        }
+
+        .tagline {
+            font-size: 1.1em;
+            color: #64748b;
+            margin-bottom: 20px;
+        }
+
+        hr.divider {
+            max-width: 250px; /* Slightly wider divider */
+            margin: 20px auto 30px auto; /* More vertical space */
+            border: 0;
+            border-top: 2px solid #cbd5e1; /* Thicker, softer divider */
         }
 
         .top-controls {
@@ -36,109 +88,210 @@
         }
 
         .dark-toggle-btn {
-            padding: 0.6em 1em;
-            font-size: 1em;
-            font-weight: bold;
-            border: 1px solid #ccc;
-            background: #eee;
+            padding: 0.7em 1.4em; /* Slightly more padding */
+            font-size: 0.95em;
+            font-weight: 600;
+            border: none; /* No border for a cleaner look */
+            background: #e2e8f0; /* Light gray background */
+            color: #475569;
             cursor: pointer;
-            border-radius: 6px;
+            border-radius: 8px; /* More rounded corners */
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05); /* Subtle shadow */
         }
 
-        hr.divider {
-            max-width: 200px;
-            margin: 0 auto 20px auto;
-            border: 0;
-            border-top: 1px solid #ccc;
+        .dark-toggle-btn:hover {
+            background-color: #cbd5e1;
+            transform: translateY(-1px); /* Slight lift on hover */
+        }
+
+        .dark-toggle-btn:active {
+            transform: translateY(0);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); /* Inset shadow for active state */
         }
 
         .container {
             max-width: 1000px;
+            width: 100%; /* Ensure it takes full width within its max-width */
             margin: auto;
-            background: #fff;
-            padding: 1em;
-            box-shadow: 0 0 10px #ccc;
-            border-radius: 8px;
+            background: #ffffff;
+            padding: 2em; /* Increased padding */
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); /* More prominent, soft shadow */
+            border-radius: 12px; /* More rounded corners */
+            border: 1px solid #e2e8f0; /* Subtle border */
         }
 
         textarea {
             width: 100%;
-            height: 350px;
+            height: 300px; /* Slightly reduced height for better balance */
             max-width: 100%;
             display: block;
             font-family: monospace;
-            padding: 1em;
-            border: 1px solid #ccc;
+            padding: 1.2em; /* Increased padding */
+            border: 1px solid #cbd5e1; /* Softer border */
+            border-radius: 8px;
             resize: vertical;
             font-size: 14px;
-            line-height: 1.5;
+            line-height: 1.6;
+            margin-bottom: 1.5em; /* More space below textarea */
+            background-color: #f8fafc; /* Light background for text area */
+            color: #334155;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
 
-        /* Adjust button margins to prevent excessive spacing with flexbox */
+        textarea:focus {
+            outline: none;
+            border-color: #6366f1; /* Highlight border on focus */
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2); /* Soft glow on focus */
+        }
+
+        /* Button Group Styling */
+        .main-buttons-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1em; /* Gap between button groups */
+            margin-top: 1em;
+            margin-bottom: 1.5em;
+        }
+
+        .left-buttons, .right-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.8em; /* Gap between individual buttons */
+        }
+
         button {
-            margin: 0 0.5em 0 0; /* Top, Right, Bottom, Left */
-            padding: 0.6em 1.2em;
+            padding: 0.8em 1.6em; /* Generous padding */
             font-size: 1em;
+            font-weight: 600;
             cursor: pointer;
-            border-radius: 6px;
-            border: 1px solid #ccc;
-            background: #eee;
+            border-radius: 8px;
+            border: 1px solid;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        /* Default Secondary Button Style */
+        button {
+            background: #e2e8f0;
+            border-color: #cbd5e1;
+            color: #475569;
         }
 
         button:hover {
-            background-color: #e0e0e0;
+            background-color: #cbd5e1;
+            transform: translateY(-1px);
         }
 
-        /* New style for the "Check for Roster Breaches" button */
+        button:active {
+            transform: translateY(0);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* Primary Button (Download ICS File) */
+        button.primary-button {
+            background: linear-gradient(to right, #6366f1, #8b5cf6); /* Vibrant blue-purple gradient */
+            border-color: #6366f1;
+            color: #ffffff;
+            box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);
+        }
+
+        button.primary-button:hover {
+            background: linear-gradient(to right, #4f46e5, #7c3aed);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 15px rgba(99, 102, 241, 0.4);
+        }
+
+        button.primary-button:active {
+            transform: translateY(0);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        /* Specific style for the "Check Roster Rules" button */
         .check-breaches-button {
-            background-color: #ffc107; /* A subtle yellow */
-            border-color: #ffc107;
-            color: #333; /* Darker text for contrast */
+            background-color: #facc15; /* A bright yellow */
+            border-color: #eab308;
+            color: #6d4a00; /* Darker text for contrast */
         }
 
         .check-breaches-button:hover {
-            background-color: #e0a800; /* Darker yellow on hover */
-            border-color: #e0a800;
+            background-color: #eab308; /* Darker yellow on hover */
+            border-color: #d9a300;
+        }
+        
+        .check-breaches-button:active {
+            transform: translateY(0);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.15);
         }
 
+        /* Info button specific styling */
+        .info-button {
+            background: none; /* Transparent background */
+            border: 1px solid #cbd5e1;
+            color: #64748b;
+            padding: 0.6em 0.9em; /* Smaller padding for icon button */
+            font-size: 1.1em; /* Larger font for clearer '?' or icon */
+            min-width: 40px; /* Ensure a minimum size for the button */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .info-button:hover {
+            background-color: #f1f5f9;
+            color: #334155;
+            transform: translateY(-1px);
+        }
+
+        /* Table Styles for Printout */
         table#printTable {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 1em;
+            margin-top: 2em;
             display: none;
-        }
-
-        table#printTable, table#printTable th, table#printTable td {
-            border: 1px solid #333;
+            font-size: 0.9em;
+            color: #334155;
         }
 
         table#printTable th, table#printTable td {
-            padding: 2px 4px;
-            font-size: 9pt;
+            border: 1px solid #e2e8f0; /* Lighter borders */
+            padding: 8px 12px;
             text-align: left;
             vertical-align: top;
             white-space: pre-wrap;
         }
 
+        table#printTable th {
+            background-color: #f1f5f9;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
         .weekend-row {
-            background-color: #e0e0e0 !important;
+            background-color: #f8fafc !important; /* Lighter weekend row */
         }
 
         /* Styles for breach results display */
         #breachResults {
-            margin-top: 1em;
-            padding: 1em;
-            border: 1px solid #ddd;
-            background-color: #f9f9f9;
-            border-radius: 5px;
-            max-height: 200px;
+            margin-top: 1.5em;
+            padding: 1.5em;
+            border: 1px solid #fecaca; /* Reddish border for alerts */
+            background-color: #fef2f2; /* Light red background */
+            border-radius: 8px;
+            max-height: 250px; /* Increased height */
             overflow-y: auto;
             display: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
 
         #breachResults h3 {
             margin-top: 0;
-            color: #333;
+            color: #dc2626; /* Stronger red for heading */
+            font-size: 1.3em;
+            margin-bottom: 0.8em;
+            font-weight: 600;
         }
 
         #breachResults ul {
@@ -147,76 +300,52 @@
         }
 
         #breachResults li {
-            margin-bottom: 0.5em;
-            font-weight: bold;
-            color: #d9534f;
+            margin-bottom: 0.7em;
+            font-weight: 500;
+            color: #b91c1c; /* Main breach text color */
+            line-height: 1.4;
         }
 
         #breachResults li.info {
-            color: #337ab7;
+            color: #2563eb; /* Blue for info messages */
             font-weight: normal;
         }
 
         #breachResults li.no-breach {
-            color: #5cb85c;
-        }
-
-        /* Button group for alignment */
-        .main-buttons-row {
-            display: flex;
-            justify-content: space-between; /* Pushes items to ends */
-            align-items: center;
-            flex-wrap: wrap; /* Allows wrapping on smaller screens */
-            margin-top: 0.5em;
-            margin-bottom: 0.5em; /* Add some space below the button row */
-        }
-
-        .left-buttons, .right-buttons {
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap; /* Allow buttons to wrap within their group */
-        }
-
-        .info-button {
-            padding: 0.6em 1em;
-            font-size: 1em;
-            font-weight: bold;
-            cursor: pointer;
-            border-radius: 6px;
-            border: 1px solid #ccc;
-            background: #eee;
-            /* Adjust margin for spacing within the right group */
-            margin-left: 0.5em; /* Space between breach button and info button */
-            margin-right: 0; /* Reset right margin as it's the last element */
-        }
-
-        .info-button:hover {
-            background-color: #e0e0e0;
+            color: #16a34a; /* Green for no breaches */
+            font-weight: 600;
         }
 
         /* Contact button specific styling */
         .contact-button-container {
             text-align: center;
-            margin-top: 2em; /* Space above the button */
-            margin-bottom: 2em; /* Space below the button */
+            margin-top: 3em; /* More space above the button */
+            margin-bottom: 2em;
         }
 
         .contact-button {
-            padding: 0.6em 1.2em; /* Reduced padding */
-            font-size: 1em; /* Reduced font size */
-            font-weight: bold;
-            background-color: #007bff; /* A nice blue */
+            padding: 0.8em 1.8em;
+            font-size: 1em;
+            font-weight: 600;
+            background: linear-gradient(to right, #0ea5e9, #3b82f6); /* Blue gradient */
             color: #fff;
-            border: 1px solid #007bff;
-            border-radius: 6px;
+            border: none; /* No border */
+            border-radius: 8px;
             cursor: pointer;
-            text-decoration: none; /* Remove underline for anchor */
-            display: inline-block; /* Allows padding and margin */
+            text-decoration: none;
+            display: inline-block;
+            box-shadow: 0 4px 10px rgba(14, 165, 233, 0.3);
         }
 
         .contact-button:hover {
-            background-color: #0056b3;
-            border-color: #0056b3;
+            background: linear-gradient(to right, #0284c7, #2563eb);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 15px rgba(14, 165, 233, 0.4);
+        }
+
+        .contact-button:active {
+            transform: translateY(0);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
         }
 
         /* Modal/Popover styles */
@@ -226,242 +355,363 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
+            background-color: rgba(0, 0, 0, 0.6); /* Darker overlay */
             display: flex;
             justify-content: center;
             align-items: center;
             z-index: 1000;
+            animation: fadeIn 0.3s ease-out; /* Fade in animation */
         }
 
         .modal-content {
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            max-width: 500px;
+            background-color: #ffffff;
+            padding: 30px; /* More padding */
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25); /* Stronger shadow */
+            max-width: 600px; /* Wider modal */
             width: 90%;
-            max-height: 80vh;
+            max-height: 90vh; /* Allow more height */
             overflow-y: auto;
             position: relative;
+            animation: slideIn 0.3s ease-out; /* Slide in animation */
         }
 
         .modal-content h4 {
             margin-top: 0;
+            margin-bottom: 20px;
+            color: #1e293b;
+            font-size: 1.4em; /* Larger heading */
+            font-weight: 600;
+        }
+
+        .modal-content p {
             margin-bottom: 15px;
-            color: #333;
-            font-size: 1.2em;
+            line-height: 1.6;
+            color: #475569;
         }
 
         .modal-content ul {
             list-style-type: disc;
-            padding-left: 20px;
+            padding-left: 25px; /* More padding for bullets */
             margin-bottom: 15px;
+            color: #475569;
         }
 
-        .modal-content li {
-            margin-bottom: 5px;
-            font-weight: normal;
-            color: #555;
+        .modal-content ul li {
+            margin-bottom: 8px; /* More space between list items */
+            font-weight: 400;
+            color: #475569;
+        }
+
+        .modal-content ul li strong {
+            color: #1e293b; /* Stronger color for bolded text in list */
         }
 
         .modal-close-button {
             position: absolute;
-            top: 10px;
+            top: 15px;
             right: 15px;
-            font-size: 1.5em;
+            font-size: 1.8em; /* Larger close button */
             font-weight: bold;
-            color: #aaa;
+            color: #94a3b8; /* Softer color */
             cursor: pointer;
             background: none;
             border: none;
             padding: 0;
+            line-height: 1;
+            transition: color 0.2s ease;
         }
 
         .modal-close-button:hover {
-            color: #333;
+            color: #334155;
+        }
+
+        /* Animations for modal */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(-30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
         }
 
         /* Media query for printing */
         @media print {
-            /* Hide all non-table elements */
-            body > *:not(.container), /* Hide direct children of body unless they are the main container */
+            body > *:not(.container),
             .logo,
             .top-controls,
             textarea,
             button,
             hr.divider,
-            .main-buttons-row, /* Hide the entire button row */
-            #breachResults, /* Hide breach results */
+            .main-buttons-row,
+            #breachResults,
             .modal-overlay,
-            .contact-button-container { /* Hide contact button during print */
+            .contact-button-container,
+            header {
                 display: none !important;
             }
 
-            /* Ensure body and container are set up for print */
             body {
                 background: white;
                 margin: 0;
-                padding: 0; /* Remove body padding */
+                padding: 0;
             }
 
             .container {
                 box-shadow: none;
-                padding: 0; /* Remove container padding */
+                padding: 0;
                 max-width: 100%;
-                width: 100%; /* Ensure container takes full width */
-                margin: 0; /* Remove container margins */
+                width: 100%;
+                margin: 0;
+                border: none;
             }
 
-            /* Only display the table */
             table#printTable {
-                display: table !important; /* Ensure table is visible */
-                margin-top: 0 !important; /* Remove top margin */
-                width: 100% !important; /* Ensure table fills width */
+                display: table !important;
+                margin-top: 0 !important;
+                width: 100% !important;
+                font-size: 8pt !important;
+                color: #000; /* Ensure black text for print */
             }
 
-            /* Adjust table cell padding for print if needed */
             table#printTable th, table#printTable td {
-                padding: 1px 2px !important; /* Reduce padding for more content */
-                font-size: 8pt !important; /* Smaller font for print */
+                padding: 1px 2px !important;
+                font-size: 8pt !important;
+                border-color: #666; /* Darker border for print */
             }
 
-            /* Ensure colors for weekend rows print correctly */
             .weekend-row {
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
-                background-color: #e0e0e0 !important;
+                background-color: #f0f0f0 !important; /* Ensure light grey for print */
             }
         }
 
         /* Dark mode styles */
         body.dark-mode {
-            background: #121212;
-            color: #f0f0f0;
+            background: linear-gradient(to bottom right, #1e293b, #0f172a);
+            color: #e2e8f0;
+        }
+
+        body.dark-mode header h1 {
+            color: #f1f5f9;
+        }
+
+        body.dark-mode header .tagline {
+            color: #a0aec0;
+        }
+
+        body.dark-mode hr.divider {
+            border-top: 2px solid #475569;
+        }
+
+        body.dark-mode .dark-toggle-btn {
+            background: #334155;
+            color: #e2e8f0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        body.dark-mode .dark-toggle-btn:hover {
+            background-color: #475569;
         }
 
         body.dark-mode .container {
-            background: #1e1e1e;
-            box-shadow: 0 0 10px #000;
+            background: #1e293b;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            border: 1px solid #334155;
         }
 
         body.dark-mode textarea {
-            background: #2a2a2a;
-            color: #f0f0f0;
-            border: 1px solid #555;
+            background: #2d3748;
+            color: #f1f5f9;
+            border: 1px solid #4a5568;
         }
 
-        body.dark-mode button,
-        body.dark-mode .dark-toggle-btn {
-            background: #333;
-            color: #fff;
-            border: 1px solid #555;
+        body.dark-mode textarea:focus {
+            border-color: #8b5cf6;
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+        }
+
+        body.dark-mode button {
+            background: #334155;
+            border-color: #4a5568;
+            color: #e2e8f0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
 
         body.dark-mode button:hover {
-            background-color: #555;
+            background-color: #475569;
+        }
+
+        body.dark-mode button.primary-button {
+            background: linear-gradient(to right, #8b5cf6, #c084fc);
+            border-color: #8b5cf6;
+            color: #ffffff;
+            box-shadow: 0 4px 10px rgba(139, 92, 246, 0.3);
+        }
+
+        body.dark-mode button.primary-button:hover {
+            background: linear-gradient(to right, #7c3aed, #a855f7);
+            box-shadow: 0 6px 15px rgba(139, 92, 246, 0.4);
         }
 
         body.dark-mode .check-breaches-button {
-            background-color: #cc9900; /* Darker yellow for dark mode */
-            border-color: #cc9900;
-            color: #f0f0f0;
+            background-color: #d97706; /* Darker orange-yellow for dark mode */
+            border-color: #b45309;
+            color: #fff;
         }
 
         body.dark-mode .check-breaches-button:hover {
-            background-color: #a67c00;
-            border-color: #a67c00;
+            background-color: #b45309;
+        }
+
+        body.dark-mode .info-button {
+            background: none;
+            border: 1px solid #4a5568;
+            color: #a0aec0;
+        }
+
+        body.dark-mode .info-button:hover {
+            background-color: #2d3748;
+            color: #e2e8f0;
         }
 
         body.dark-mode table#printTable {
-            background: #1e1e1e;
-            color: #f0f0f0;
+            background: #1e293b;
+            color: #e2e8f0;
         }
 
         body.dark-mode table#printTable th,
         body.dark-mode table#printTable td {
-            border-color: #555;
+            border-color: #4a5568;
+        }
+
+        body.dark-mode table#printTable th {
+            background-color: #2d3748;
+            color: #f1f5f9;
         }
 
         body.dark-mode .weekend-row {
-            background-color: #2f2f2f !important;
+            background-color: #263240 !important;
         }
 
         body.dark-mode #breachResults {
-            background-color: #2a2a2a;
-            border-color: #555;
+            border: 1px solid #b91c1c;
+            background-color: #331f22; /* Darker red for dark mode */
         }
 
         body.dark-mode #breachResults h3 {
-            color: #f0f0f0;
+            color: #f87171;
         }
 
         body.dark-mode #breachResults li {
-            color: #ff9999;
+            color: #fca5a5;
         }
         body.dark-mode #breachResults li.info {
-            color: #99bbff;
+            color: #93c5fd;
         }
-        body.dark-mode .info-button {
-            background: #333;
-            border-color: #555;
-            color: #fff;
+        body.dark-mode #breachResults li.no-breach {
+            color: #4ade80;
         }
-        body.dark-mode .info-button:hover {
-            background-color: #555;
-        }
+
         body.dark-mode .modal-content {
-            background-color: #1e1e1e;
-            color: #f0f0f0;
+            background-color: #1e293b;
+            color: #e2e8f0;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
         }
+
         body.dark-mode .modal-content h4 {
-            color: #f0f0f0;
+            color: #f1f5f9;
         }
-        body.dark-mode .modal-content ul { /* Ensure bullets are visible in dark mode */
-            color: #ccc;
+
+        body.dark-mode .modal-content p,
+        body.dark-mode .modal-content ul li {
+            color: #a0aec0;
         }
-        body.dark-mode .modal-content li {
-            color: #ccc;
+
+        body.dark-mode .modal-content ul li strong {
+            color: #e2e8f0;
         }
+
         body.dark-mode .modal-close-button {
-            color: #888;
+            color: #a0aec0;
         }
+
         body.dark-mode .modal-close-button:hover {
-            color: #f0f0f0;
+            color: #f1f5f9;
         }
-        /* Dark mode for Contact button */
+
         body.dark-mode .contact-button {
-            background-color: #0056b3; /* Darker blue for dark mode */
-            border-color: #0056b3;
-            color: #f0f0f0;
+            background: linear-gradient(to right, #3b82f6, #60a5fa);
+            border-color: #3b82f6;
+            box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
         }
 
         body.dark-mode .contact-button:hover {
-            background-color: #003d80; /* Even darker blue on hover */
-            border-color: #003d80;
+            background: linear-gradient(to right, #2563eb, #3b82f6);
+            box-shadow: 0 6px 15px rgba(59, 130, 246, 0.4);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8em;
+            }
+            .tagline {
+                font-size: 1em;
+            }
+            .container {
+                padding: 1.5em;
+            }
+            .main-buttons-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .left-buttons, .right-buttons {
+                flex-direction: column;
+                align-items: stretch;
+                width: 100%;
+            }
+            button {
+                width: 100%; /* Full width buttons on small screens */
+            }
+            .top-controls {
+                position: static; /* Stack controls on small screens */
+                text-align: center;
+                margin-bottom: 20px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="logo">
-        <img src="E190 roster1.png" alt="Alliance Airlines Logo">
-    </div>
-    <hr class="divider">
+    <header>
+        <div class="logo">
+            <img src="E190 roster1.png" alt="Alliance Airlines Logo">
+        </div>
+        <h1>Advanced Roster Management</h1>
+        <p class="tagline">Your all-in-one tool for roster calendar integration and compliance validation.</p>
+        <hr class="divider">
+    </header>
 
     <div class="top-controls">
         <button class="dark-toggle-btn" onclick="toggleDarkMode()" id="darkModeBtn">Switch to Dark Mode</button>
     </div>
 
-    <div class="container">
-        <textarea id="rosterInput" placeholder="Paste your roster here..."></textarea><br/>
+    <main class="container">
+        <textarea id="rosterInput" placeholder="Paste your roster here..."></textarea>
         
         <div class="main-buttons-row">
             <div class="left-buttons">
-                <button onclick="generatePrintout()">Print This Page</button>
-                <button onclick="generateICS()">Download ICS File</button>
+                <button onclick="generatePrintout()">Print Roster</button>
+                <button onclick="generateICS()" class="primary-button">Download ICS File</button>
             </div>
             <div class="right-buttons">
                 <button onclick="checkForBreaches()" class="check-breaches-button">Check Roster Rules</button>
-                <button class="info-button" onclick="showBreachInfoModal()">?</button>
+                <button class="info-button" onclick="showBreachInfoModal()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-info"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                </button>
             </div>
         </div>
 
@@ -488,11 +738,11 @@
             </thead>
             <tbody id="printTableBody"></tbody>
         </table>
-    </div>
+    </main>
 
-    <div class="contact-button-container">
-        <a href="mailto:cabela@allianceairlines.com.au?subject=Roster Tool Feedback/Suggestion" class="contact-button">Help & Feedback</a>
-    </div>
+    <footer class="contact-button-container">
+        <a href="mailto:cabela@allianceairlines.com.au?subject=Roster Tool Feedback/Suggestion" class="contact-button">Send Feedback or Get Help</a>
+    </footer>
 
     <div id="breachInfoModal" class="modal-overlay" style="display: none;">
         <div class="modal-content">
@@ -501,18 +751,18 @@
             <p>This tool provides general guidance. It has not been tested on a wide audience and may contain inaccuracies. Always refer to the official EA document and the rostering policy for definitive interpretation. This tool flags potential deviations from standard roster rules; some may be permissible if mutually agreed by the Pilot and Alliance Group.</p>
             <p>The tool currently checks for the following potential roster deviations:</p>
             <ul>
-                <li>**Early Starts** [EA 14.8]: More than 3 consecutive starts before 06:00. (Unless mutually agreed by Pilot).</li>
-                <li>**Early Starts (7-Day)** [EA 14.8]: More than 3 early starts in any 7-day period. (Unless mutually agreed by Pilot).</li>
-                <li>**Minimum RDOs** [EA 14.11]: Fewer than 8 Rostered Days Off in a 28-day roster period. (Adjusted for leave).</li>
-                <li>**Weekend Off** [EA 14.16]: No full Saturday and Sunday RDO block in a 28-day roster period. (Unless mutually agreed, leave days count as off).</li>
-                <li>**Consecutive Duty Tours** [EA 14.15]: Two tours each of 6+ consecutive duty days without a minimum of 2 consecutive days off in between. (Unless agreed by Pilot).</li>
-                <li>**Rest Periods (Home Base)** [EA 14.48]: Less than 12 hours rest between duties at Home Base. (Unless mutually agreed or FRMS applies where greater).</li>
-                <li>**Short Rest Periods (Info)**: Less than 12 hours rest between duties when one or both duties are away from Home Base. (May be permissible under FRMS, e.g., 10-hour rule).</li>
+                <li><strong>Early Starts</strong> [EA 14.8]: More than 3 consecutive starts before 06:00. (Unless mutually agreed by Pilot).</li>
+                <li><strong>Early Starts (7-Day)</strong> [EA 14.8]: More than 3 early starts in any 7-day period. (Unless mutually agreed by Pilot).</li>
+                <li><strong>Minimum RDOs</strong> [EA 14.11]: Fewer than 8 Rostered Days Off in a 28-day roster period. (Adjusted for leave).</li>
+                <li><strong>Weekend Off</strong> [EA 14.16]: No full Saturday and Sunday RDO block in a 28-day roster period. (Unless mutually agreed, leave days count as off).</li>
+                <li><strong>Consecutive Duty Tours</strong> [EA 14.15]: Two tours each of 6+ consecutive duty days without a minimum of 2 consecutive days off in between. (Unless agreed by Pilot).</li>
+                <li><strong>Rest Periods (Home Base)</strong> [EA 14.48]: Less than 12 hours rest between duties at Home Base. (Unless mutually agreed or FRMS applies where greater).</li>
+                <li><strong>Short Rest Periods (Info)</strong>: Less than 12 hours rest between duties when one or both duties are away from Home Base. (May be permissible under FRMS, e.g., 10-hour rule).</li>
             </ul>
             <p>
-                The tool **does NOT** currently check for:
+                The tool <strong>does NOT</strong> currently check for:
                 <ul>
-                    <li>**Grey Day Directed Work**: (e.g., being directed to work on a Grey Day outside of assessment/remedial training, or if you have nominated to work).</li>
+                    <li><strong>Grey Day Directed Work</strong>: (e.g., being directed to work on a Grey Day outside of assessment/remedial training, or if you have nominated to work).</li>
                     <li>Specific RDO and Grey Day buffer periods (e.g., 36-hour for 1 RDO, 60-hour for 2 RDOs, etc.).</li>
                     <li>Any Flight Duty Period (FDP) or Duty Time limitations based on CAO 48 or FRMS.</li>
                     <li>Maximum consecutive nights away from Home Base.</li>
@@ -587,6 +837,7 @@
         function processRosterEntryBuffer(buffer) {
             const rowData = Array(10).fill('');
             const initialSplit = buffer[0].split(/\t| {2,}/);
+            // Ensure initialSplit has at least 5 elements before accessing index 4
             for (let i = 0; i < initialSplit.length && i < 5; i++) rowData[i] = initialSplit[i];
 
             const [dayStr, monStr, yyyyVal] = rowData[0].split(/[\/\s]/);
@@ -764,9 +1015,9 @@
 
             const breachList = document.getElementById('breachList');
             breachList.innerHTML = '';
-            const flagsFound = []; 
+            const flagsFound = [];    
 
-            function addFlag(message, isInfo = false) { 
+            function addFlag(message, isInfo = false) {    
                 flagsFound.push(message);
                 const li = document.createElement('li');
                 li.textContent = message;
@@ -899,7 +1150,7 @@
             if (rosterDurationDays >= (ROSTER_PERIOD_DAYS - 1) && rosterDurationDays <= (ROSTER_PERIOD_DAYS + 1)) {
                 // Get the minimum required RDOs from the pro-rata table based on approved leave days
                 // Cap approvedLeaveDays at max defined in table to prevent errors
-                const leaveDaysIndex = Math.min(approvedLeaveDays, 28); 
+                const leaveDaysIndex = Math.min(approvedLeaveDays, 28);    
                 const minRdoRequired = (rdoProRataTable[leaveDaysIndex] || rdoProRataTable[0]).rdo;
 
                 if (actualRdoCount < minRdoRequired) {
@@ -926,7 +1177,7 @@
                         }
                     }
                 }
-                const firstRosterDateForWeekend = roster[0].date; 
+                const firstRosterDateForWeekend = roster[0].date;    
                 const lastRosterDateForWeekend = roster[roster.length - 1].date;
                 const rosterDurationMsForWeekend = lastRosterDateForWeekend.getTime() - firstRosterDateForWeekend.getTime();
                 const rosterDurationDaysForWeekend = Math.round(rosterDurationMsForWeekend / (1000 * 60 * 60 * 24)) + 1;
@@ -946,7 +1197,7 @@
             for (let i = 0; i < roster.length; i++) {
                 const entry = roster[i];
                 // Using the pre-calculated isActualDuty
-                if (entry.isActualDuty) { 
+                if (entry.isActualDuty) {    
                     consecutiveDutyDays++;
                 } else {
                     if (consecutiveDutyDays >= DUTY_TOUR_LENGTH) {
@@ -999,7 +1250,7 @@
                 const currentEntry = roster[i + 1];
 
                 // Ensure the current entry is an actual duty for this calculation
-                if (isNaN(parseTime(prevEntry.debriefTime)) || isNaN(parseTime(currentEntry.briefTime)) || !currentEntry.isActualDuty) { 
+                if (isNaN(parseTime(prevEntry.debriefTime)) || isNaN(parseTime(currentEntry.briefTime)) || !currentEntry.isActualDuty) {    
                     continue;
                 }
 
@@ -1041,7 +1292,7 @@
 
         // New functions for the modal/popover
         function showBreachInfoModal() {
-            breachInfoModal.style.display = 'flex'; 
+            breachInfoModal.style.display = 'flex';    
         }
 
         function hideBreachInfoModal() {
