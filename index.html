@@ -85,9 +85,16 @@
             position: absolute;
             top: 20px;
             right: 20px;
+            display: flex; /* Make it a flex container */
+            gap: 10px; /* Space between buttons */
+        }
+        
+        .top-controls.left { /* New class for left alignment */
+            left: 20px;
+            right: auto; /* Override right: 20px */
         }
 
-        .dark-toggle-btn {
+        .dark-toggle-btn, .about-button {
             padding: 0.7em 1.4em; /* Slightly more padding */
             font-size: 0.95em;
             font-weight: 600;
@@ -100,12 +107,12 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.05); /* Subtle shadow */
         }
 
-        .dark-toggle-btn:hover {
+        .dark-toggle-btn:hover, .about-button:hover {
             background-color: #cbd5e1;
             transform: translateY(-1px); /* Slight lift on hover */
         }
 
-        .dark-toggle-btn:active {
+        .dark-toggle-btn:active, .about-button:active {
             transform: translateY(0);
             box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); /* Inset shadow for active state */
         }
@@ -507,13 +514,13 @@
             border-top: 2px solid #475569;
         }
 
-        body.dark-mode .dark-toggle-btn {
+        body.dark-mode .dark-toggle-btn, body.dark-mode .about-button {
             background: #334155;
             color: #e2e8f0;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
 
-        body.dark-mode .dark-toggle-btn:hover {
+        body.dark-mode .dark-toggle-btn:hover, body.dark-mode .about-button:hover {
             background-color: #475569;
         }
 
@@ -643,17 +650,6 @@
             color: #f1f5f9;
         }
 
-        body.dark-mode .contact-button {
-            background: linear-gradient(to right, #3b82f6, #60a5fa);
-            border-color: #3b82f6;
-            box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
-        }
-
-        body.dark-mode .contact-button:hover {
-            background: linear-gradient(to right, #2563eb, #3b82f6);
-            box-shadow: 0 6px 15px rgba(59, 130, 246, 0.4);
-        }
-
         /* Responsive adjustments */
         @media (max-width: 768px) {
             h1 {
@@ -681,6 +677,15 @@
                 position: static; /* Stack controls on small screens */
                 text-align: center;
                 margin-bottom: 20px;
+                flex-direction: column; /* Stack buttons vertically */
+                align-items: stretch;
+            }
+            .top-controls.left {
+                position: static; /* Stack controls on small screens */
+                text-align: center;
+                margin-bottom: 20px;
+                flex-direction: column; /* Stack buttons vertically */
+                align-items: stretch;
             }
         }
     </style>
@@ -704,8 +709,9 @@
         <hr class="divider">
     </header>
 
-    <div class="top-controls">
-        <button class="dark-toggle-btn" onclick="toggleDarkMode()" id="darkModeBtn">Switch to Dark Mode</button>
+    <div class="top-controls left"> <button class="about-button" onclick="showAboutInfoModal()">About</button>
+    </div>
+    <div class="top-controls"> <button class="dark-toggle-btn" onclick="toggleDarkMode()" id="darkModeBtn">Switch to Dark Mode</button>
     </div>
 
     <main class="container">
@@ -782,9 +788,22 @@
         </div>
     </div>
 
+    <div id="aboutInfoModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <button class="modal-close-button" onclick="hideAboutInfoModal()">&times;</button>
+            <h4>About This Tool (Beta)</h4>
+            <p>This tool was created independently by a fellow pilot with the sole aim of assisting others in better understanding their roster patterns and general EA guidelines. It is not affiliated with, endorsed by, or created on behalf of any employer, union, or industrial body.</p>
+            <p>The EBA awareness checks provided are informational only and designed to highlight areas where further review may be helpful. They do not represent a compliance determination, directive, or claim of breach.</p>
+            <p>All interpretations remain subject to the actual Enterprise Agreement, rostering policy, and any mutual agreements between a pilot and the company.</p>
+            <p>Pilots are encouraged to verify any concerns through their usual channels.</p>
+            <p>This is a personal initiative developed in response to common pilot feedback, and is intended purely as a supportive, awareness-enhancing tool.</p>
+        </div>
+    </div>
+
     <script>
-        // Global variable to hold the modal element reference
+        // Global variable to hold the modal element references
         const breachInfoModal = document.getElementById('breachInfoModal');
+        const aboutInfoModal = document.getElementById('aboutInfoModal'); // New modal reference
 
         function toggleDarkMode() {
             const body = document.body;
@@ -803,11 +822,15 @@
                 document.getElementById('darkModeBtn').textContent = 'Switch to Light Mode';
             }
 
-            // Add event listener to close modal when clicking outside content
+            // Add event listener to close modals when clicking outside content
             breachInfoModal.addEventListener('click', function(event) {
-                // If the click target is the overlay itself (not the modal content)
                 if (event.target === breachInfoModal) {
                     hideBreachInfoModal();
+                }
+            });
+            aboutInfoModal.addEventListener('click', function(event) { // New event listener for about modal
+                if (event.target === aboutInfoModal) {
+                    hideAboutInfoModal();
                 }
             });
         };
@@ -1037,7 +1060,7 @@
             }
 
             // RDO pro-rata table based on Annexure A, Table 1 (8 RDOs and 2 Grey day)
-            // This table is active until the 9 RDOs + 1 Grey Day comes into effect.
+            // This table is active until the 9 RDOs and 1 Grey Day comes into effect.
             const rdoProRataTable = {
                 0: { rdo: 8, grey: 2 },
                 1: { rdo: 8, grey: 2 },
@@ -1145,7 +1168,7 @@
                 const dutyTypeUpper = entry.dutyType.toUpperCase();
                 if (dutyTypeUpper.includes('LVEALV') || dutyTypeUpper.includes('LVEWKD')) {
                     approvedLeaveDays++;
-                } else if (dutyTypeUpper.includes('RDO')) {
+                } else if (dutyTypeUpper.includes('RDO') || dutyTypeUpper.includes('SDO')) { // MODIFIED LINE HERE
                     actualRdoCount++;
                 }
             }
@@ -1258,19 +1281,28 @@
                 const prevEntry = roster[i];
                 const currentEntry = roster[i + 1];
 
-                // Ensure the current entry is an actual duty for this calculation
+                // Ensure the current entry is an actual duty for this calculation and times are valid
                 if (isNaN(parseTime(prevEntry.debriefTime)) || isNaN(parseTime(currentEntry.briefTime)) || !currentEntry.isActualDuty) {    
                     continue;
                 }
 
+                // Create full Date objects for precise rest calculation across midnight/multiple days
+                const prevDebriefDate = new Date(prevEntry.date);
                 const prevDebriefMinutes = parseTime(prevEntry.debriefTime);
-                const currentBriefMinutes = parseTime(currentEntry.briefTime);
+                prevDebriefDate.setHours(Math.floor(prevDebriefMinutes / 60), prevDebriefMinutes % 60, 0, 0);
 
-                let restDurationMinutes;
-                if (currentBriefMinutes >= prevDebriefMinutes) {
-                    restDurationMinutes = currentBriefMinutes - prevDebriefMinutes;
-                } else {
-                    restDurationMinutes = (24 * 60 - prevDebriefMinutes) + currentBriefMinutes;
+                const currentBriefDate = new Date(currentEntry.date);
+                const currentBriefMinutes = parseTime(currentEntry.briefTime);
+                currentBriefDate.setHours(Math.floor(currentBriefMinutes / 60), currentBriefMinutes % 60, 0, 0);
+
+                // Calculate the difference in milliseconds, then convert to minutes
+                const restDurationMs = currentBriefDate.getTime() - prevDebriefDate.getTime();
+                let restDurationMinutes = Math.round(restDurationMs / (1000 * 60));
+
+                // Handle potential negative duration if dates/times are out of sequence, though this ideally shouldn't happen with valid roster data
+                if (restDurationMinutes < 0) {
+                     console.warn(`Negative rest duration detected between ${prevEntry.dateString} ${prevEntry.debriefTime} and ${currentEntry.dateString} ${currentEntry.briefTime}. Skipping this rest check.`);
+                     continue; // Skip this pair if calculation yields negative duration
                 }
                 
                 const isPrevDutyAtHomeBase = prevEntry.layover.trim() === '';
@@ -1299,13 +1331,21 @@
             document.getElementById('breachResults').style.display = 'block';
         }
 
-        // New functions for the modal/popover
+        // Functions for the modals
         function showBreachInfoModal() {
             breachInfoModal.style.display = 'flex';    
         }
 
         function hideBreachInfoModal() {
             breachInfoModal.style.display = 'none';
+        }
+
+        function showAboutInfoModal() { // New function for About modal
+            aboutInfoModal.style.display = 'flex';
+        }
+
+        function hideAboutInfoModal() { // New function for About modal
+            aboutInfoModal.style.display = 'none';
         }
 
         function generatePrintout() {
