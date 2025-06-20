@@ -771,6 +771,9 @@
                 <li><strong>Weekend Off</strong> [EA 14.16]: No full Saturday and Sunday RDO block in a 28-day roster period. (Unless mutually agreed, leave days count as off).</li>
                 <li><strong>Consecutive Duty Tours</strong> [EA 14.15]: Two tours each of 6+ consecutive duty days without a minimum of 2 consecutive days off in between. (Unless agreed by Pilot).</li>
                 <li><strong>Sign-on/off Around Leave</strong> [EA 14.17]: Checks for sign-off later than 14:00 before, or sign-on earlier than 12:00 after, a leave block of 7+ days.</li>
+                <li><strong>Maximum Nights Away</strong> [EA 14.54]: Flags trips with more than 5 consecutive nights away from Home Base.</li>
+                <li><strong>Training After Leave</strong> [EA 14.47]: Checks for training/checking duties rostered within 10 days of returning from a leave block of 15+ days.</li>
+                <li><strong>Rest Before Standby</strong> [EA 14.50]: Checks for less than 12 hours rest between a duty's sign-off and the start of a subsequent Standby day.</li>
                 <li><strong>Rest Periods (Home Base)</strong> [EA 14.48]: Less than 12 hours rest between duties at Home Base. (Unless mutually agreed or FRMS applies where greater).</li>
                 <li><strong>Short Rest Periods (Info)</strong>: Less than 12 hours rest between duties when one or both duties are away from Home Base. (May be permissible under FRMS, e.g., 10-hour rule).</li>
             </ul>
@@ -780,8 +783,6 @@
                     <li><strong>Grey Day Directed Work</strong>: (e.g., being directed to work on a Grey Day outside of assessment/remedial training, or if you have nominated to work).</li>
                     <li>Specific RDO and Grey Day buffer periods (e.g., 36-hour for 1 RDO, 60-hour for 2 RDOs, etc.).</li>
                     <li>Any Flight Duty Period (FDP) or Duty Time limitations based on CAO 48 or FRMS.</li>
-                    <li>Maximum consecutive nights away from Home Base.</li>
-                    <li>Any specific Rest Periods related to Standby.</li>
                     <li>Any other complex rostering rules or buffers.</li>
                 </ul>
             </p>
@@ -1008,6 +1009,11 @@
 
             return rosterEntries;
         }
+        
+        function isAnnualLeave(entry) {
+            const dutyTypeUpper = entry.dutyType.toUpperCase();
+            return dutyTypeUpper.includes('LVE') || dutyTypeUpper.includes('ALV');
+        }
 
         /**
          * Checks if a given roster entry represents a day that is free of duty or is a leave day.
@@ -1020,8 +1026,7 @@
             return dutyTypeUpper.includes('RDO') ||
                    dutyTypeUpper.includes('GREY DAY') ||
                    dutyTypeUpper.includes('SBY') ||
-                   dutyTypeUpper.includes('LVE') || // Catches LVEALV, LVEWKD
-                   dutyTypeUpper.includes('ALV');   // Catches ALV
+                   isAnnualLeave(entry);
         }
 
         /**
@@ -1035,8 +1040,7 @@
                 dutyTypeUpper.includes('RDO') ||
                 dutyTypeUpper.includes('GREY DAY') ||
                 dutyTypeUpper.includes('SBY') ||
-                dutyTypeUpper.includes('LVE') || // Catches LVEALV, LVEWKD
-                dutyTypeUpper.includes('ALV')    // Catches ALV
+                isAnnualLeave(entry)
             );
         }
 
@@ -1062,311 +1066,200 @@
             }
 
             // RDO pro-rata table based on Annexure A, Table 1 (8 RDOs and 2 Grey day)
-            // This table is active until the 9 RDOs and 1 Grey Day comes into effect.
             const rdoProRataTable = {
-                0: { rdo: 8, grey: 2 },
-                1: { rdo: 8, grey: 2 },
-                2: { rdo: 7, grey: 2 },
-                3: { rdo: 7, grey: 2 },
-                4: { rdo: 7, grey: 2 },
-                5: { rdo: 7, grey: 2 },
-                6: { rdo: 6, grey: 2 },
-                7: { rdo: 6, grey: 2 },
-                8: { rdo: 6, grey: 1 },
-                9: { rdo: 5, grey: 1 },
-                10: { rdo: 5, grey: 1 },
-                11: { rdo: 5, grey: 1 },
-                12: { rdo: 5, grey: 1 },
-                13: { rdo: 4, grey: 1 },
-                14: { rdo: 4, grey: 1 },
-                15: { rdo: 4, grey: 1 },
-                16: { rdo: 3, grey: 1 },
-                17: { rdo: 3, grey: 1 },
-                18: { rdo: 3, grey: 1 },
-                19: { rdo: 3, grey: 1 },
-                20: { rdo: 2, grey: 1 },
-                21: { rdo: 2, grey: 1 },
-                22: { rdo: 2, grey: 0 },
-                23: { rdo: 1, grey: 0 },
-                24: { rdo: 1, grey: 0 },
-                25: { rdo: 1, grey: 0 },
-                26: { rdo: 1, grey: 0 },
-                27: { rdo: 0, grey: 0 },
+                0: { rdo: 8, grey: 2 }, 1: { rdo: 8, grey: 2 }, 2: { rdo: 7, grey: 2 }, 3: { rdo: 7, grey: 2 },
+                4: { rdo: 7, grey: 2 }, 5: { rdo: 7, grey: 2 }, 6: { rdo: 6, grey: 2 }, 7: { rdo: 6, grey: 2 },
+                8: { rdo: 6, grey: 1 }, 9: { rdo: 5, grey: 1 }, 10: { rdo: 5, grey: 1 }, 11: { rdo: 5, grey: 1 },
+                12: { rdo: 5, grey: 1 }, 13: { rdo: 4, grey: 1 }, 14: { rdo: 4, grey: 1 }, 15: { rdo: 4, grey: 1 },
+                16: { rdo: 3, grey: 1 }, 17: { rdo: 3, grey: 1 }, 18: { rdo: 3, grey: 1 }, 19: { rdo: 3, grey: 1 },
+                20: { rdo: 2, grey: 1 }, 21: { rdo: 2, grey: 1 }, 22: { rdo: 2, grey: 0 }, 23: { rdo: 1, grey: 0 },
+                24: { rdo: 1, grey: 0 }, 25: { rdo: 1, grey: 0 }, 26: { rdo: 1, grey: 0 }, 27: { rdo: 0, grey: 0 },
                 28: { rdo: 0, grey: 0 }
             };
 
+            const earlyStartsThreshold = 3;
 
-            const earlyStartsThreshold = 3; // More than 3 means 4 or more
-
-            // --- 1. Early Starts Deviation Check (CONSECUTIVE: 4+ consecutive before 06:00) ---
+            // --- 1. Early Starts Deviation Check (CONSECUTIVE) ---
             let consecutiveEarlyStarts = 0;
             let currentConsecutiveBlockStartIdx = -1;
-
             for (let i = 0; i < roster.length; i++) {
-                const currentEntry = roster[i];
-
-                if (currentEntry.isEarlyStart) {
-                    if (consecutiveEarlyStarts === 0) {
-                        currentConsecutiveBlockStartIdx = i;
-                    }
+                if (roster[i].isEarlyStart) {
+                    if (consecutiveEarlyStarts === 0) currentConsecutiveBlockStartIdx = i;
                     consecutiveEarlyStarts++;
                 } else {
                     if (consecutiveEarlyStarts > earlyStartsThreshold) {
-                        const startDate = roster[currentConsecutiveBlockStartIdx].dateString;
-                        addFlag(`Early Start Flag (Consecutive) [EA 14.8]: ${consecutiveEarlyStarts} consecutive duties before 06:00, started ${startDate}. (Usually max 3, unless agreed).`);
-                        // Mark all days in this consecutive block as flagged
-                        for (let k = currentConsecutiveBlockStartIdx; k < i; k++) {
-                            roster[k].consecutiveFlagged = true;
-                        }
+                        addFlag(`Early Start Flag (Consecutive) [EA 14.8]: ${consecutiveEarlyStarts} consecutive duties before 06:00, started ${roster[currentConsecutiveBlockStartIdx].dateString}. (Usually max 3, unless agreed).`);
+                        for (let k = currentConsecutiveBlockStartIdx; k < i; k++) roster[k].consecutiveFlagged = true;
                     }
                     consecutiveEarlyStarts = 0;
-                    currentConsecutiveBlockStartIdx = -1;
                 }
             }
-            // Handle consecutive block ending at end of roster
             if (consecutiveEarlyStarts > earlyStartsThreshold) {
-                const startDate = roster[currentConsecutiveBlockStartIdx].dateString;
-                addFlag(`Early Start Flag (Consecutive) [EA 14.8]: ${consecutiveEarlyStarts} consecutive duties before 06:00, started ${startDate}. (Usually max 3, unless agreed).`);
-                for (let k = currentConsecutiveBlockStartIdx; k < roster.length; k++) {
-                    roster[k].consecutiveFlagged = true;
-                }
+                addFlag(`Early Start Flag (Consecutive) [EA 14.8]: ${consecutiveEarlyStarts} consecutive duties before 06:00, started ${roster[currentConsecutiveBlockStartIdx].dateString}. (Usually max 3, unless agreed).`);
+                for (let k = currentConsecutiveBlockStartIdx; k < roster.length; k++) roster[k].consecutiveFlagged = true;
             }
 
-            // --- 2. Early Starts Deviation Check (ANY 7-DAY PERIOD: 4+ in any 7 days) ---
+            // --- 2. Early Starts Deviation Check (ANY 7-DAY PERIOD) ---
             for (let i = 0; i < roster.length; i++) {
                 const endDate = roster[i].date;
                 const startDateWindow = new Date(endDate);
-                startDateWindow.setDate(endDate.getDate() - 6); // 7-day window including current day
-
+                startDateWindow.setDate(endDate.getDate() - 6);
                 let earlyStartsInWindowCount = 0;
                 let earlyStartDatesInWindow = [];
-                
-                for (let j = i; j >= 0; j--) {
-                    const windowEntry = roster[j];
-                    // Ensure the day is within the 7-day window and is an actual duty day
-                    if (windowEntry.date < startDateWindow || !windowEntry.isActualDuty) {
-                        continue;
-                    }
-
-                    // Only count if it's an early start AND NOT part of a previously flagged consecutive block
-                    if (windowEntry.isEarlyStart && !windowEntry.consecutiveFlagged) {
+                for (let j = i; j >= 0 && roster[j].date >= startDateWindow; j--) {
+                    if (roster[j].isEarlyStart && !roster[j].consecutiveFlagged) {
                         earlyStartsInWindowCount++;
-                        earlyStartDatesInWindow.unshift(windowEntry.dateString); // Add to front for ordered list
+                        earlyStartDatesInWindow.unshift(roster[j].dateString);
                     }
                 }
-
                 if (earlyStartsInWindowCount > earlyStartsThreshold) {
                     addFlag(`Early Start Flag (7-Day) [EA 14.8]: ${earlyStartsInWindowCount} early starts in 7 days ending ${roster[i].dateString} (${earlyStartDatesInWindow.join(', ')}). (Usually max 3, unless agreed).`);
                 }
             }
 
-
-            // --- Minimum RDOs Check (fewer than required in 28 days, adjusted for leave) ---
-            const ROSTER_PERIOD_DAYS = 28;
+            // --- Minimum RDOs Check ---
             let approvedLeaveDays = 0;
-            let actualRdoCount = 0; // Strictly count RDOs (not leave days)
-
-            for (const entry of roster) {
-                const dutyTypeUpper = entry.dutyType.toUpperCase();
-                // **FIXED LOGIC HERE** to include 'ALV'
-                if (dutyTypeUpper.includes('LVE') || dutyTypeUpper.includes('ALV')) {
-                    approvedLeaveDays++;
-                } else if (dutyTypeUpper.includes('RDO') || dutyTypeUpper.includes('SDO')) {
-                    actualRdoCount++;
-                }
-            }
-            
-            const firstDate = roster[0].date;
-            const lastDate = roster[roster.length - 1].date;
-
-            const rosterDurationMs = lastDate.getTime() - firstDate.getTime();
-            const rosterDurationDays = Math.round(rosterDurationMs / (1000 * 60 * 60 * 24)) + 1;
-
-            if (rosterDurationDays >= (ROSTER_PERIOD_DAYS - 1) && rosterDurationDays <= (ROSTER_PERIOD_DAYS + 1)) {
-                // Get the minimum required RDOs from the pro-rata table based on approved leave days
-                const leaveDaysIndex = Math.min(approvedLeaveDays, 28);    
+            let actualRdoCount = 0;
+            roster.forEach(entry => {
+                if (isAnnualLeave(entry)) approvedLeaveDays++;
+                else if (entry.dutyType.toUpperCase().includes('RDO') || entry.dutyType.toUpperCase().includes('SDO')) actualRdoCount++;
+            });
+            const rosterDurationDays = Math.round((roster[roster.length - 1].date - roster[0].date) / (1000 * 60 * 60 * 24)) + 1;
+            if (rosterDurationDays >= 27 && rosterDurationDays <= 29) {
+                const leaveDaysIndex = Math.min(approvedLeaveDays, 28);
                 const minRdoRequired = (rdoProRataTable[leaveDaysIndex] || rdoProRataTable[0]).rdo;
-
                 if (actualRdoCount < minRdoRequired) {
                     addFlag(`RDO Flag [EA 14.11]: Only ${actualRdoCount} RDOs in ${rosterDurationDays}-day period. Minimum ${minRdoRequired} required (adjusted for ${approvedLeaveDays} leave days).`);
                 }
             }
 
-            // --- One Weekend Off Check (no Sat/Sun RDO block, leave counts as off) ---
+            // --- One Weekend Off Check ---
             let hasWeekendOff = false;
             if (roster.length > 0) {
                 for (let i = 0; i < roster.length - 1; i++) {
-                    const currentEntry = roster[i];
-                    const nextEntry = roster[i + 1];
-
-                    const currentDayOfWeek = currentEntry.date.getDay(); // 0 for Sunday, 6 for Saturday
-                    const nextDayOfWeek = nextEntry.date.getDay();
-
-                    // Check if current day is Saturday and next is Sunday
-                    if (currentDayOfWeek === 6 && nextDayOfWeek === 0) {
-                        // Check if both Saturday and Sunday are "free of duty"
-                        if (isDayFreeOfDutyOrLeave(currentEntry) && isDayFreeOfDutyOrLeave(nextEntry)) {
+                    const currentDay = roster[i];
+                    const nextDay = roster[i+1];
+                    if (currentDay.date.getDay() === 6 && nextDay.date.getDay() === 0) {
+                        if (isDayFreeOfDutyOrLeave(currentDay) && isDayFreeOfDutyOrLeave(nextDay)) {
                             hasWeekendOff = true;
                             break;
                         }
                     }
                 }
-                const firstRosterDateForWeekend = roster[0].date;    
-                const lastRosterDateForWeekend = roster[roster.length - 1].date;
-                const rosterDurationMsForWeekend = lastRosterDateForWeekend.getTime() - firstRosterDateForWeekend.getTime();
-                const rosterDurationDaysForWeekend = Math.round(rosterDurationMsForWeekend / (1000 * 60 * 60 * 24)) + 1;
-
-                if (!hasWeekendOff && rosterDurationDaysForWeekend >= (ROSTER_PERIOD_DAYS - 1) && rosterDurationDaysForWeekend <= (ROSTER_PERIOD_DAYS + 1)) {
+                if (!hasWeekendOff && rosterDurationDays >= 27 && rosterDurationDays <= 29) {
                     addFlag(`Weekend Off Flag [EA 14.16]: No full Sat/Sun RDO block found. (Unless mutually agreed, leave days count as off).`);
                 }
             }
 
-            // --- Consecutive Duty Tours Check (two 6+ day tours without 2+ consecutive days off in between) ---
+            // --- Consecutive Duty Tours Check ---
             const DUTY_TOUR_LENGTH = 6;
-            const REQUIRED_DAYS_OFF_BETWEEN_TOURS = 2;
-
             let consecutiveDutyDays = 0;
             let dutyTourDetails = [];
-
             for (let i = 0; i < roster.length; i++) {
-                const entry = roster[i];
-                if (entry.isActualDuty) {    
+                if (roster[i].isActualDuty) {
                     consecutiveDutyDays++;
                 } else {
                     if (consecutiveDutyDays >= DUTY_TOUR_LENGTH) {
-                        const tourStartDate = roster[i - consecutiveDutyDays].dateString;
-                        const tourEndDate = roster[i - 1].dateString;
-                        dutyTourDetails.push({ start: tourStartDate, end: tourEndDate, startIndex: i - consecutiveDutyDays });
+                        dutyTourDetails.push({ startIndex: i - consecutiveDutyDays });
                     }
                     consecutiveDutyDays = 0;
                 }
-
-                if (i === roster.length - 1 && consecutiveDutyDays >= DUTY_TOUR_LENGTH) {
-                    const tourStartDate = roster[i - consecutiveDutyDays + 1].dateString;
-                    const tourEndDate = roster[i].dateString;
-                    dutyTourDetails.push({ start: tourStartDate, end: tourEndDate, startIndex: i - consecutiveDutyDays + 1 });
-                }
             }
-
+            if (consecutiveDutyDays >= DUTY_TOUR_LENGTH) {
+                dutyTourDetails.push({ startIndex: roster.length - consecutiveDutyDays });
+            }
             for (let i = 0; i < dutyTourDetails.length - 1; i++) {
-                const firstTour = dutyTourDetails[i];
-                const secondTour = dutyTourDetails[i + 1];
-
-                let maxConsecutiveDaysOffFound = 0;
-                let currentConsecutiveDaysOffStreak = 0;
-
-                for (let j = firstTour.startIndex + DUTY_TOUR_LENGTH; j < secondTour.startIndex; j++) {
-                    if (j < roster.length) {
-                        const dayBetween = roster[j];
-                        if (dayBetween.dutyType.toUpperCase().includes('RDO') || dayBetween.dutyType.toUpperCase().includes('GREY DAY')) {
-                            currentConsecutiveDaysOffStreak++;
-                        } else {
-                            maxConsecutiveDaysOffFound = Math.max(maxConsecutiveDaysOffFound, currentConsecutiveDaysOffStreak);
-                            currentConsecutiveDaysOffStreak = 0;
-                        }
+                let daysOffBetween = 0;
+                for (let j = dutyTourDetails[i].startIndex + DUTY_TOUR_LENGTH; j < dutyTourDetails[i + 1].startIndex; j++) {
+                    if (roster[j].dutyType.toUpperCase().includes('RDO') || roster[j].dutyType.toUpperCase().includes('GREY DAY')) {
+                        daysOffBetween++;
+                    } else {
+                        break; // Streak must be consecutive
                     }
                 }
-                maxConsecutiveDaysOffFound = Math.max(maxConsecutiveDaysOffFound, currentConsecutiveDaysOffStreak);
-
-                if (maxConsecutiveDaysOffFound < REQUIRED_DAYS_OFF_BETWEEN_TOURS) {
-                    addFlag(`Duty Tour Flag [EA 14.15]: Two 6+ day tours with only ${maxConsecutiveDaysOffFound} days off between (min ${REQUIRED_DAYS_OFF_BETWEEN_TOURS} req'd, unless agreed).`);
+                if (daysOffBetween < 2) {
+                    addFlag(`Duty Tour Flag [EA 14.15]: Two 6+ day tours are not separated by at least 2 consecutive days off. (Unless agreed).`);
                 }
             }
 
-            // --- Sign-on/off Around Leave Check [EA 14.17] ---
-            const MIN_LEAVE_DURATION_FOR_CHECK = 7;
-            const MAX_DEBRIEF_TIME_BEFORE_LEAVE = parseTime('14:00'); // 840 minutes
-            const MIN_BRIEF_TIME_AFTER_LEAVE = parseTime('12:00');   // 720 minutes
-
+            // --- Leave and Training Checks ---
             for (let i = 0; i < roster.length; i++) {
-                const entry = roster[i];
-                const dutyTypeUpper = entry.dutyType.toUpperCase();
-
-                // **FIXED LOGIC HERE** to include 'ALV'
-                if (dutyTypeUpper.includes('LVE') || dutyTypeUpper.includes('ALV')) {
+                if (isAnnualLeave(roster[i])) {
                     let leaveBlockEndIndex = i;
-                    // Find the end of this consecutive leave block
-                    while (
-                        leaveBlockEndIndex + 1 < roster.length &&
-                        (roster[leaveBlockEndIndex + 1].dutyType.toUpperCase().includes('LVE') || roster[leaveBlockEndIndex + 1].dutyType.toUpperCase().includes('ALV'))
-                    ) {
+                    while (leaveBlockEndIndex + 1 < roster.length && isAnnualLeave(roster[leaveBlockEndIndex + 1])) {
                         leaveBlockEndIndex++;
                     }
-
                     const leaveDuration = leaveBlockEndIndex - i + 1;
 
-                    if (leaveDuration >= MIN_LEAVE_DURATION_FOR_CHECK) {
-                        // Found a qualifying leave block. Now check boundaries.
-
-                        // 1. Check duty BEFORE the leave block
-                        const dutyBeforeIndex = i - 1;
-                        if (dutyBeforeIndex >= 0) {
-                            const dutyBefore = roster[dutyBeforeIndex];
-                            if (isDayOfDuty(dutyBefore) && !isNaN(parseTime(dutyBefore.debriefTime))) {
-                                const debriefTimeMinutes = parseTime(dutyBefore.debriefTime);
-                                if (debriefTimeMinutes > MAX_DEBRIEF_TIME_BEFORE_LEAVE) {
-                                    addFlag(`Leave Buffer Flag [EA 14.17]: Sign-off on ${dutyBefore.dateString} (${dutyBefore.debriefTime}) is after 14:00 before a ${leaveDuration}-day leave block. (Unless agreed).`);
-                                }
-                            }
+                    // Sign-on/off Around Leave Check [EA 14.17]
+                    if (leaveDuration >= 7) {
+                        if (i > 0 && roster[i-1].isActualDuty && parseTime(roster[i-1].debriefTime) > parseTime('14:00')) {
+                            addFlag(`Leave Buffer Flag [EA 14.17]: Sign-off on ${roster[i-1].dateString} (${roster[i-1].debriefTime}) is after 14:00 before a ${leaveDuration}-day leave block. (Unless agreed).`);
                         }
-
-                        // 2. Check duty AFTER the leave block
-                        const dutyAfterIndex = leaveBlockEndIndex + 1;
-                        if (dutyAfterIndex < roster.length) {
-                            const dutyAfter = roster[dutyAfterIndex];
-                            if (isDayOfDuty(dutyAfter) && !isNaN(parseTime(dutyAfter.briefTime))) {
-                                const briefTimeMinutes = parseTime(dutyAfter.briefTime);
-                                if (briefTimeMinutes < MIN_BRIEF_TIME_AFTER_LEAVE) {
-                                    addFlag(`Leave Buffer Flag [EA 14.17]: Sign-on on ${dutyAfter.dateString} (${dutyAfter.briefTime}) is before 12:00 after a ${leaveDuration}-day leave block. (Unless agreed).`);
-                                }
-                            }
+                        if (leaveBlockEndIndex + 1 < roster.length && roster[leaveBlockEndIndex+1].isActualDuty && parseTime(roster[leaveBlockEndIndex+1].briefTime) < parseTime('12:00')) {
+                             addFlag(`Leave Buffer Flag [EA 14.17]: Sign-on on ${roster[leaveBlockEndIndex+1].dateString} (${roster[leaveBlockEndIndex+1].briefTime}) is before 12:00 after a ${leaveDuration}-day leave block. (Unless agreed).`);
                         }
                     }
-                    
-                    // Skip the loop to the end of the leave block we just processed
+
+                    // Training After Leave Check [EA 14.47]
+                    if (leaveDuration > 14) {
+                        for (let j = leaveBlockEndIndex + 1; j < leaveBlockEndIndex + 11 && j < roster.length; j++) {
+                             if (roster[j].dutyType.toUpperCase().includes('TRG')) {
+                                addFlag(`Training After Leave Flag [EA 14.47]: Training on ${roster[j].dateString} is within 10 days of returning from a ${leaveDuration}-day leave block.`);
+                                break;
+                             }
+                        }
+                    }
                     i = leaveBlockEndIndex;
                 }
             }
 
-
-            // --- Rest Periods Between Duty Periods Check ---
-            const HOME_BASE_MIN_REST_HOURS = 12;
-            const HOME_BASE_MIN_REST_MINUTES = HOME_BASE_MIN_REST_HOURS * 60;
-
+            // --- Maximum Nights Away Check [EA 14.54] ---
+            let consecutiveNightsAway = 0;
+            let longTripCount = 0;
+            for (let i = 0; i < roster.length; i++) {
+                if (roster[i].layover.trim() !== '') {
+                    consecutiveNightsAway++;
+                } else {
+                    if (consecutiveNightsAway > 5) longTripCount++;
+                    consecutiveNightsAway = 0;
+                }
+            }
+            if (consecutiveNightsAway > 5) longTripCount++;
+            if (longTripCount > 0) {
+                 addFlag(`Nights Away Flag [EA 14.54]: Found ${longTripCount} trip(s) of more than 5 consecutive nights. (Max 1 per roster period is allowed).`);
+            }
+            
+            // --- Rest Periods & Standby Checks ---
+            const HOME_BASE_MIN_REST_MINUTES = 12 * 60;
             for (let i = 0; i < roster.length - 1; i++) {
                 const prevEntry = roster[i];
                 const currentEntry = roster[i + 1];
 
-                if (isNaN(parseTime(prevEntry.debriefTime)) || isNaN(parseTime(currentEntry.briefTime)) || !currentEntry.isActualDuty) {    
-                    continue;
-                }
-
-                const prevDebriefDate = new Date(prevEntry.date);
-                const prevDebriefMinutes = parseTime(prevEntry.debriefTime);
-                prevDebriefDate.setHours(Math.floor(prevDebriefMinutes / 60), prevDebriefMinutes % 60, 0, 0);
-
-                const currentBriefDate = new Date(currentEntry.date);
-                const currentBriefMinutes = parseTime(currentEntry.briefTime);
-                currentBriefDate.setHours(Math.floor(currentBriefMinutes / 60), currentBriefMinutes % 60, 0, 0);
-
-                const restDurationMs = currentBriefDate.getTime() - prevDebriefDate.getTime();
-                let restDurationMinutes = Math.round(restDurationMs / (1000 * 60));
-
-                if (restDurationMinutes < 0) {
-                      console.warn(`Negative rest duration detected between ${prevEntry.dateString} ${prevEntry.debriefTime} and ${currentEntry.dateString} ${currentEntry.briefTime}. Skipping this rest check.`);
-                        continue;
+                // Rest Before Standby Check [EA 14.50]
+                if (currentEntry.dutyType.toUpperCase().includes('SBY') && prevEntry.isActualDuty) {
+                    const restDurationMs = currentEntry.date.getTime() - new Date(prevEntry.date).setHours(0, parseTime(prevEntry.debriefTime), 0, 0);
+                    const restDurationMinutes = Math.round(restDurationMs / (1000 * 60));
+                    if (restDurationMinutes < HOME_BASE_MIN_REST_MINUTES) {
+                         addFlag(`Rest Before Standby Flag [EA 14.50]: Only ${formatMinutesToHHMM(restDurationMinutes)} rest between duty on ${prevEntry.dateString} and Standby on ${currentEntry.dateString}. (Min 12 hrs req'd).`);
+                    }
                 }
                 
-                const isPrevDutyAtHomeBase = prevEntry.layover.trim() === '';
-                const isCurrentDutyAtHomeBase = currentEntry.layover.trim() === '';
+                // General Rest Periods Check [EA 14.48]
+                if (prevEntry.isActualDuty && currentEntry.isActualDuty && !isNaN(parseTime(prevEntry.debriefTime)) && !isNaN(parseTime(currentEntry.briefTime))) {
+                    const prevDebriefDate = new Date(prevEntry.date);
+                    prevDebriefDate.setHours(Math.floor(parseTime(prevEntry.debriefTime) / 60), parseTime(prevEntry.debriefTime) % 60, 0, 0);
+                    const currentBriefDate = new Date(currentEntry.date);
+                    currentBriefDate.setHours(Math.floor(parseTime(currentEntry.briefTime) / 60), parseTime(currentEntry.briefTime) % 60, 0, 0);
+                    const restDurationMinutes = Math.round((currentBriefDate - prevDebriefDate) / (1000 * 60));
 
-                if (isPrevDutyAtHomeBase && isCurrentDutyAtHomeBase) {
                     if (restDurationMinutes < HOME_BASE_MIN_REST_MINUTES) {
-                        addFlag(`Home Base Rest Flag [EA 14.48]: Only ${formatMinutesToHHMM(restDurationMinutes)} rest between duties on ${prevEntry.dateString} and ${currentEntry.dateString}. (Min ${HOME_BASE_MIN_REST_HOURS} hrs req'd, unless agreed).`);
-                    }
-                } else {
-                    if (restDurationMinutes < HOME_BASE_MIN_REST_MINUTES) {
-                        addFlag(`Info: Short Rest [EA 14.48]: Only ${formatMinutesToHHMM(restDurationMinutes)} rest between duties on ${prevEntry.dateString} and ${currentEntry.dateString}. (May be permissible if away from Home Base or under FRMS).`, true);
+                        const isAtHomeBase = prevEntry.layover.trim() === '';
+                        if (isAtHomeBase) {
+                            addFlag(`Home Base Rest Flag [EA 14.48]: Only ${formatMinutesToHHMM(restDurationMinutes)} rest between duties on ${prevEntry.dateString} and ${currentEntry.dateString}. (Min 12 hrs req'd).`);
+                        } else {
+                            addFlag(`Info: Short Rest [EA 14.48]: Only ${formatMinutesToHHMM(restDurationMinutes)} rest between duties on ${prevEntry.dateString} and ${currentEntry.dateString}. (May be permissible if away from Home Base or under FRMS).`, true);
+                        }
                     }
                 }
             }
@@ -1414,6 +1307,7 @@
             let totals = [0, 0, 0, 0];
 
             function parseMinutes(time) {
+                if (!time || !time.includes(':')) return 0;
                 const [h, m] = time.split(':').map(Number);
                 return h * 60 + m;
             }
@@ -1437,18 +1331,10 @@
                 const tr = document.createElement('tr');
                 if (isWeekend) tr.classList.add('weekend-row');
                 
-                // Construct the row data array for printing, matching the HTML table structure
+                // Construct the row data array for printing
                 const rowPrintData = [
-                    `${dayOfWeek} ${entry.dateString}`,
-                    entry.dutyType,
-                    entry.briefTime,
-                    entry.debriefTime,
-                    entry.layover,
-                    entry.details, // Details already contain newlines for print
-                    entry.dutyHours,
-                    entry.flightHours,
-                    entry.paxHours,
-                    entry.creditHours
+                    `${dayOfWeek} ${entry.dateString}`, entry.dutyType, entry.briefTime, entry.debriefTime,
+                    entry.layover, entry.details, entry.dutyHours, entry.flightHours, entry.paxHours, entry.creditHours
                 ];
 
                 rowPrintData.forEach(val => {
@@ -1458,25 +1344,11 @@
                 });
                 tbody.appendChild(tr);
 
-                // Update totals (same as before)
-                for (let i = 0; i < 4; i++) { // Loop for dutyHours, flightHours, paxHours, creditHours
-                    const hourValue = entry.dutyHours; // Get the original value from entry
-                    if (i === 0 && hourValue && hourValue.match(/^\d{1,2}:\d{2}$/)) { // Duty hours
-                        totals[0] += parseMinutes(hourValue);
-                    }
-                    const flightValue = entry.flightHours;
-                    if (i === 1 && flightValue && flightValue.match(/^\d{1,2}:\d{2}$/)) { // Flight hours
-                        totals[1] += parseMinutes(flightValue);
-                    }
-                    const paxValue = entry.paxHours;
-                    if (i === 2 && paxValue && paxValue.match(/^\d{1,2}:\d{2}$/)) { // Pax hours
-                        totals[2] += parseMinutes(paxValue);
-                    }
-                    const creditValue = entry.creditHours;
-                    if (i === 3 && creditValue && creditValue.match(/^\d{1,2}:\d{2}$/)) { // Credit hours
-                        totals[3] += parseMinutes(creditValue);
-                    }
-                }
+                totals[0] += parseMinutes(entry.dutyHours);
+                totals[1] += parseMinutes(entry.flightHours);
+                totals[2] += parseMinutes(entry.paxHours);
+                totals[3] += parseMinutes(entry.creditHours);
+                
                 buffer = [];
             }
 
