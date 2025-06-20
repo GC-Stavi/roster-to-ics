@@ -689,8 +689,7 @@
             }
         }
     </style>
-    <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-Z4Q32GG8W8"></script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Z4Q32GG8W8"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
@@ -771,6 +770,7 @@
                 <li><strong>Minimum RDOs</strong> [EA 14.11]: Fewer than 8 Rostered Days Off in a 28-day roster period. (Adjusted for leave).</li>
                 <li><strong>Weekend Off</strong> [EA 14.16]: No full Saturday and Sunday RDO block in a 28-day roster period. (Unless mutually agreed, leave days count as off).</li>
                 <li><strong>Consecutive Duty Tours</strong> [EA 14.15]: Two tours each of 6+ consecutive duty days without a minimum of 2 consecutive days off in between. (Unless agreed by Pilot).</li>
+                <li><strong>Sign-on/off Around Leave</strong> [EA 14.17]: Checks for sign-off later than 14:00 before, or sign-on earlier than 12:00 after, a leave block of 7+ days.</li>
                 <li><strong>Rest Periods (Home Base)</strong> [EA 14.48]: Less than 12 hours rest between duties at Home Base. (Unless mutually agreed or FRMS applies where greater).</li>
                 <li><strong>Short Rest Periods (Info)</strong>: Less than 12 hours rest between duties when one or both duties are away from Home Base. (May be permissible under FRMS, e.g., 10-hour rule).</li>
             </ul>
@@ -1019,8 +1019,9 @@
             const dutyTypeUpper = entry.dutyType.toUpperCase();
             return dutyTypeUpper.includes('RDO') ||
                    dutyTypeUpper.includes('GREY DAY') ||
-                   dutyTypeUpper.includes('SBY') || // Standby days are also technically "free of duty" for weekend off check
-                   dutyTypeUpper.includes('LVE'); // Covers LVEALV, LVEWKD, etc.
+                   dutyTypeUpper.includes('SBY') ||
+                   dutyTypeUpper.includes('LVE') || // Catches LVEALV, LVEWKD
+                   dutyTypeUpper.includes('ALV');   // Catches ALV
         }
 
         /**
@@ -1034,7 +1035,8 @@
                 dutyTypeUpper.includes('RDO') ||
                 dutyTypeUpper.includes('GREY DAY') ||
                 dutyTypeUpper.includes('SBY') ||
-                dutyTypeUpper.includes('LVE')
+                dutyTypeUpper.includes('LVE') || // Catches LVEALV, LVEWKD
+                dutyTypeUpper.includes('ALV')    // Catches ALV
             );
         }
 
@@ -1166,9 +1168,10 @@
 
             for (const entry of roster) {
                 const dutyTypeUpper = entry.dutyType.toUpperCase();
-                if (dutyTypeUpper.includes('LVEALV') || dutyTypeUpper.includes('LVEWKD')) {
+                // **FIXED LOGIC HERE** to include 'ALV'
+                if (dutyTypeUpper.includes('LVE') || dutyTypeUpper.includes('ALV')) {
                     approvedLeaveDays++;
-                } else if (dutyTypeUpper.includes('RDO') || dutyTypeUpper.includes('SDO')) { // MODIFIED LINE HERE
+                } else if (dutyTypeUpper.includes('RDO') || dutyTypeUpper.includes('SDO')) {
                     actualRdoCount++;
                 }
             }
@@ -1181,7 +1184,6 @@
 
             if (rosterDurationDays >= (ROSTER_PERIOD_DAYS - 1) && rosterDurationDays <= (ROSTER_PERIOD_DAYS + 1)) {
                 // Get the minimum required RDOs from the pro-rata table based on approved leave days
-                // Cap approvedLeaveDays at max defined in table to prevent errors
                 const leaveDaysIndex = Math.min(approvedLeaveDays, 28);    
                 const minRdoRequired = (rdoProRataTable[leaveDaysIndex] || rdoProRataTable[0]).rdo;
 
@@ -1202,7 +1204,7 @@
 
                     // Check if current day is Saturday and next is Sunday
                     if (currentDayOfWeek === 6 && nextDayOfWeek === 0) {
-                        // Check if both Saturday and Sunday are "free of duty" (RDO, Grey Day, Standby, or Leave)
+                        // Check if both Saturday and Sunday are "free of duty"
                         if (isDayFreeOfDutyOrLeave(currentEntry) && isDayFreeOfDutyOrLeave(nextEntry)) {
                             hasWeekendOff = true;
                             break;
@@ -1228,7 +1230,6 @@
 
             for (let i = 0; i < roster.length; i++) {
                 const entry = roster[i];
-                // Using the pre-calculated isActualDuty
                 if (entry.isActualDuty) {    
                     consecutiveDutyDays++;
                 } else {
@@ -1257,7 +1258,6 @@
                 for (let j = firstTour.startIndex + DUTY_TOUR_LENGTH; j < secondTour.startIndex; j++) {
                     if (j < roster.length) {
                         const dayBetween = roster[j];
-                        // Days off for this check are RDO or Grey Day
                         if (dayBetween.dutyType.toUpperCase().includes('RDO') || dayBetween.dutyType.toUpperCase().includes('GREY DAY')) {
                             currentConsecutiveDaysOffStreak++;
                         } else {
@@ -1273,6 +1273,62 @@
                 }
             }
 
+            // --- Sign-on/off Around Leave Check [EA 14.17] ---
+            const MIN_LEAVE_DURATION_FOR_CHECK = 7;
+            const MAX_DEBRIEF_TIME_BEFORE_LEAVE = parseTime('14:00'); // 840 minutes
+            const MIN_BRIEF_TIME_AFTER_LEAVE = parseTime('12:00');   // 720 minutes
+
+            for (let i = 0; i < roster.length; i++) {
+                const entry = roster[i];
+                const dutyTypeUpper = entry.dutyType.toUpperCase();
+
+                // **FIXED LOGIC HERE** to include 'ALV'
+                if (dutyTypeUpper.includes('LVE') || dutyTypeUpper.includes('ALV')) {
+                    let leaveBlockEndIndex = i;
+                    // Find the end of this consecutive leave block
+                    while (
+                        leaveBlockEndIndex + 1 < roster.length &&
+                        (roster[leaveBlockEndIndex + 1].dutyType.toUpperCase().includes('LVE') || roster[leaveBlockEndIndex + 1].dutyType.toUpperCase().includes('ALV'))
+                    ) {
+                        leaveBlockEndIndex++;
+                    }
+
+                    const leaveDuration = leaveBlockEndIndex - i + 1;
+
+                    if (leaveDuration >= MIN_LEAVE_DURATION_FOR_CHECK) {
+                        // Found a qualifying leave block. Now check boundaries.
+
+                        // 1. Check duty BEFORE the leave block
+                        const dutyBeforeIndex = i - 1;
+                        if (dutyBeforeIndex >= 0) {
+                            const dutyBefore = roster[dutyBeforeIndex];
+                            if (isDayOfDuty(dutyBefore) && !isNaN(parseTime(dutyBefore.debriefTime))) {
+                                const debriefTimeMinutes = parseTime(dutyBefore.debriefTime);
+                                if (debriefTimeMinutes > MAX_DEBRIEF_TIME_BEFORE_LEAVE) {
+                                    addFlag(`Leave Buffer Flag [EA 14.17]: Sign-off on ${dutyBefore.dateString} (${dutyBefore.debriefTime}) is after 14:00 before a ${leaveDuration}-day leave block. (Unless agreed).`);
+                                }
+                            }
+                        }
+
+                        // 2. Check duty AFTER the leave block
+                        const dutyAfterIndex = leaveBlockEndIndex + 1;
+                        if (dutyAfterIndex < roster.length) {
+                            const dutyAfter = roster[dutyAfterIndex];
+                            if (isDayOfDuty(dutyAfter) && !isNaN(parseTime(dutyAfter.briefTime))) {
+                                const briefTimeMinutes = parseTime(dutyAfter.briefTime);
+                                if (briefTimeMinutes < MIN_BRIEF_TIME_AFTER_LEAVE) {
+                                    addFlag(`Leave Buffer Flag [EA 14.17]: Sign-on on ${dutyAfter.dateString} (${dutyAfter.briefTime}) is before 12:00 after a ${leaveDuration}-day leave block. (Unless agreed).`);
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Skip the loop to the end of the leave block we just processed
+                    i = leaveBlockEndIndex;
+                }
+            }
+
+
             // --- Rest Periods Between Duty Periods Check ---
             const HOME_BASE_MIN_REST_HOURS = 12;
             const HOME_BASE_MIN_REST_MINUTES = HOME_BASE_MIN_REST_HOURS * 60;
@@ -1281,12 +1337,10 @@
                 const prevEntry = roster[i];
                 const currentEntry = roster[i + 1];
 
-                // Ensure the current entry is an actual duty for this calculation and times are valid
                 if (isNaN(parseTime(prevEntry.debriefTime)) || isNaN(parseTime(currentEntry.briefTime)) || !currentEntry.isActualDuty) {    
                     continue;
                 }
 
-                // Create full Date objects for precise rest calculation across midnight/multiple days
                 const prevDebriefDate = new Date(prevEntry.date);
                 const prevDebriefMinutes = parseTime(prevEntry.debriefTime);
                 prevDebriefDate.setHours(Math.floor(prevDebriefMinutes / 60), prevDebriefMinutes % 60, 0, 0);
@@ -1295,14 +1349,12 @@
                 const currentBriefMinutes = parseTime(currentEntry.briefTime);
                 currentBriefDate.setHours(Math.floor(currentBriefMinutes / 60), currentBriefMinutes % 60, 0, 0);
 
-                // Calculate the difference in milliseconds, then convert to minutes
                 const restDurationMs = currentBriefDate.getTime() - prevDebriefDate.getTime();
                 let restDurationMinutes = Math.round(restDurationMs / (1000 * 60));
 
-                // Handle potential negative duration if dates/times are out of sequence, though this ideally shouldn't happen with valid roster data
                 if (restDurationMinutes < 0) {
-                     console.warn(`Negative rest duration detected between ${prevEntry.dateString} ${prevEntry.debriefTime} and ${currentEntry.dateString} ${currentEntry.briefTime}. Skipping this rest check.`);
-                     continue; // Skip this pair if calculation yields negative duration
+                      console.warn(`Negative rest duration detected between ${prevEntry.dateString} ${prevEntry.debriefTime} and ${currentEntry.dateString} ${currentEntry.briefTime}. Skipping this rest check.`);
+                        continue;
                 }
                 
                 const isPrevDutyAtHomeBase = prevEntry.layover.trim() === '';
