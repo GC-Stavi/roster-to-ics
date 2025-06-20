@@ -770,7 +770,7 @@
                 <li><strong>Minimum RDOs</strong> [EA 14.11]: Fewer than 8 Rostered Days Off in a 28-day roster period. (Adjusted for leave).</li>
                 <li><strong>Weekend Off</strong> [EA 14.16]: No full Saturday and Sunday RDO block in a 28-day roster period. (Unless mutually agreed, leave days count as off).</li>
                 <li><strong>Consecutive Duty Tours</strong> [EA 14.15]: Two tours each of 6+ consecutive duty days without a minimum of 2 consecutive days off in between. (Unless agreed by Pilot).</li>
-                <li><strong>Sign-on/off Around Leave</strong> [EA 14.17]: Checks for sign-off later than 14:00 before, or sign-on earlier than 12:00 after, a leave block of 7+ days.</li>
+                <li><strong>Sign-on/off Around Leave</strong> [EA 14.17]: Checks for sign-off later than 14:00 before, or sign-on earlier than 12:00 after, a leave block of 7+ days (includes associated RDOs).</li>
                 <li><strong>Maximum Nights Away</strong> [EA 14.54]: Flags trips with more than 5 consecutive nights away from Home Base.</li>
                 <li><strong>Training After Leave</strong> [EA 14.47]: Checks for training/checking duties rostered within 10 days of returning from a leave block of 15+ days.</li>
                 <li><strong>Rest Before Standby</strong> [EA 14.50]: Checks for less than 12 hours rest between a duty's sign-off and the start of a subsequent Standby day.</li>
@@ -1015,6 +1015,11 @@
             return dutyTypeUpper.includes('LVE') || dutyTypeUpper.includes('ALV');
         }
 
+        function isRDO(entry) {
+             const dutyTypeUpper = entry.dutyType.toUpperCase();
+             return dutyTypeUpper.includes('RDO') || dutyTypeUpper.includes('SDO');
+        }
+
         /**
          * Checks if a given roster entry represents a day that is free of duty or is a leave day.
          * This is used for rules like Weekend Off, where leave days might count as "off".
@@ -1023,7 +1028,7 @@
          */
         function isDayFreeOfDutyOrLeave(entry) {
             const dutyTypeUpper = entry.dutyType.toUpperCase();
-            return dutyTypeUpper.includes('RDO') ||
+            return isRDO(entry) ||
                    dutyTypeUpper.includes('GREY DAY') ||
                    dutyTypeUpper.includes('SBY') ||
                    isAnnualLeave(entry);
@@ -1035,13 +1040,7 @@
          * @returns {boolean} True if the day is a duty day.
          */
         function isDayOfDuty(entry) {
-            const dutyTypeUpper = entry.dutyType.toUpperCase();
-            return !(
-                dutyTypeUpper.includes('RDO') ||
-                dutyTypeUpper.includes('GREY DAY') ||
-                dutyTypeUpper.includes('SBY') ||
-                isAnnualLeave(entry)
-            );
+            return !isDayFreeOfDutyOrLeave(entry);
         }
 
         function checkForBreaches() {
@@ -1122,7 +1121,7 @@
             let actualRdoCount = 0;
             roster.forEach(entry => {
                 if (isAnnualLeave(entry)) approvedLeaveDays++;
-                else if (entry.dutyType.toUpperCase().includes('RDO') || entry.dutyType.toUpperCase().includes('SDO')) actualRdoCount++;
+                else if (isRDO(entry)) actualRdoCount++;
             });
             const rosterDurationDays = Math.round((roster[roster.length - 1].date - roster[0].date) / (1000 * 60 * 60 * 24)) + 1;
             if (rosterDurationDays >= 27 && rosterDurationDays <= 29) {
@@ -1171,10 +1170,10 @@
             for (let i = 0; i < dutyTourDetails.length - 1; i++) {
                 let daysOffBetween = 0;
                 for (let j = dutyTourDetails[i].startIndex + DUTY_TOUR_LENGTH; j < dutyTourDetails[i + 1].startIndex; j++) {
-                    if (roster[j].dutyType.toUpperCase().includes('RDO') || roster[j].dutyType.toUpperCase().includes('GREY DAY')) {
+                    if (isRDO(roster[j]) || roster[j].dutyType.toUpperCase().includes('GREY DAY')) {
                         daysOffBetween++;
                     } else {
-                        break; // Streak must be consecutive
+                        break; 
                     }
                 }
                 if (daysOffBetween < 2) {
@@ -1191,13 +1190,38 @@
                     }
                     const leaveDuration = leaveBlockEndIndex - i + 1;
 
-                    // Sign-on/off Around Leave Check [EA 14.17]
+                    // Sign-on/off Around Leave Check [EA 14.17] - With advanced logic for RDOs
                     if (leaveDuration >= 7) {
-                        if (i > 0 && roster[i-1].isActualDuty && parseTime(roster[i-1].debriefTime) > parseTime('14:00')) {
-                            addFlag(`Leave Buffer Flag [EA 14.17]: Sign-off on ${roster[i-1].dateString} (${roster[i-1].debriefTime}) is after 14:00 before a ${leaveDuration}-day leave block. (Unless agreed).`);
+                        // Check Before Leave (and associated RDOs)
+                        let dutyBeforeIndex = i - 1;
+                        while(dutyBeforeIndex >= 0) {
+                            const precedingEntry = roster[dutyBeforeIndex];
+                            if (isDayOfDuty(precedingEntry)) {
+                                if (!isNaN(parseTime(precedingEntry.debriefTime)) && parseTime(precedingEntry.debriefTime) > parseTime('14:00')) {
+                                     addFlag(`Leave Buffer Flag [EA 14.17]: Sign-off on ${precedingEntry.dateString} (${precedingEntry.debriefTime}) is after 14:00 before an RDO/Leave block. (Unless agreed).`);
+                                }
+                                break;
+                            } else if (isRDO(precedingEntry)) {
+                                dutyBeforeIndex--; // It's an RDO, keep looking backwards
+                            } else {
+                                break; // It's something else (SBY, etc.), so stop searching
+                            }
                         }
-                        if (leaveBlockEndIndex + 1 < roster.length && roster[leaveBlockEndIndex+1].isActualDuty && parseTime(roster[leaveBlockEndIndex+1].briefTime) < parseTime('12:00')) {
-                             addFlag(`Leave Buffer Flag [EA 14.17]: Sign-on on ${roster[leaveBlockEndIndex+1].dateString} (${roster[leaveBlockEndIndex+1].briefTime}) is before 12:00 after a ${leaveDuration}-day leave block. (Unless agreed).`);
+                        
+                        // Check After Leave (and associated RDOs)
+                        let dutyAfterIndex = leaveBlockEndIndex + 1;
+                        while(dutyAfterIndex < roster.length) {
+                             const subsequentEntry = roster[dutyAfterIndex];
+                             if (isDayOfDuty(subsequentEntry)) {
+                                 if (!isNaN(parseTime(subsequentEntry.briefTime)) && parseTime(subsequentEntry.briefTime) < parseTime('12:00')) {
+                                      addFlag(`Leave Buffer Flag [EA 14.17]: Sign-on on ${subsequentEntry.dateString} (${subsequentEntry.briefTime}) is before 12:00 after an RDO/Leave block. (Unless agreed).`);
+                                 }
+                                 break;
+                             } else if (isRDO(subsequentEntry)) {
+                                 dutyAfterIndex++; // It's an RDO, keep looking forwards
+                             } else {
+                                 break; // It's something else, stop searching
+                             }
                         }
                     }
 
@@ -1226,8 +1250,10 @@
                 }
             }
             if (consecutiveNightsAway > 5) longTripCount++;
-            if (longTripCount > 0) {
-                 addFlag(`Nights Away Flag [EA 14.54]: Found ${longTripCount} trip(s) of more than 5 consecutive nights. (Max 1 per roster period is allowed).`);
+            if (longTripCount > 1) { // Only flag if more than one such trip occurs
+                 addFlag(`Nights Away Flag [EA 14.54]: Found ${longTripCount} trips of more than 5 consecutive nights. (Max 1 per roster period is allowed).`);
+            } else if (longTripCount > 0) {
+                 addFlag(`Info: A trip longer than 5 nights was found. (Max 1 per roster period is allowed under EA 14.54).`, true);
             }
             
             // --- Rest Periods & Standby Checks ---
@@ -1238,10 +1264,12 @@
 
                 // Rest Before Standby Check [EA 14.50]
                 if (currentEntry.dutyType.toUpperCase().includes('SBY') && prevEntry.isActualDuty) {
-                    const restDurationMs = currentEntry.date.getTime() - new Date(prevEntry.date).setHours(0, parseTime(prevEntry.debriefTime), 0, 0);
-                    const restDurationMinutes = Math.round(restDurationMs / (1000 * 60));
-                    if (restDurationMinutes < HOME_BASE_MIN_REST_MINUTES) {
-                         addFlag(`Rest Before Standby Flag [EA 14.50]: Only ${formatMinutesToHHMM(restDurationMinutes)} rest between duty on ${prevEntry.dateString} and Standby on ${currentEntry.dateString}. (Min 12 hrs req'd).`);
+                    const debriefTime = parseTime(prevEntry.debriefTime);
+                    if (!isNaN(debriefTime)) {
+                        const restInMinutes = (1440 - debriefTime) + ((currentEntry.date - prevEntry.date) / (1000 * 60) - 1440);
+                         if (restInMinutes < HOME_BASE_MIN_REST_MINUTES) {
+                            addFlag(`Rest Before Standby Flag [EA 14.50]: Only ${formatMinutesToHHMM(restInMinutes)} rest between duty on ${prevEntry.dateString} and Standby on ${currentEntry.dateString}. (Min 12 hrs req'd).`);
+                        }
                     }
                 }
                 
